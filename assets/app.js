@@ -12,7 +12,16 @@
   }
 
   const CST = "Asia/Shanghai";
-  const VIEWS = ["f1", "fe", "lol", "vct", "kpl", "ivl"];
+  const SERIES = ["f1", "fe", "lol", "vct", "kpl", "ivl"];
+  const VIEWS = ["home", ...SERIES];
+  const HOME_SERIES = [
+    { id: "f1", mark: "F1", nameZh: "F1 世界锦标赛", nameEn: "Formula 1", descZh: "分站、车手与车队积分、上一站结果", descEn: "Races, drivers and constructors, last result", accent: "#ff3b30" },
+    { id: "fe", mark: "FE", nameZh: "FE 电动方程式", nameEn: "Formula E", descZh: "赛季赛历、比赛周末与下一站", descEn: "Season calendar, race weekends and next round", accent: "#22a7ff" },
+    { id: "lol", mark: "LoL", nameZh: "英雄联盟", nameEn: "League of Legends", descZh: "S16 全球总决赛瑞士轮与 LPL 分组", descEn: "Worlds Swiss Stage and LPL groups", accent: "#d6b36a" },
+    { id: "vct", mark: "VCT", nameZh: "无畏契约", nameEn: "VALORANT", descZh: "13 个赛区排名、近期赛程与赛果", descEn: "13 regional rankings, fixtures and results", accent: "#ff4655" },
+    { id: "kpl", mark: "KPL", nameZh: "王者荣耀 KPL", nameEn: "Honor of Kings", descZh: "年度总决赛、赛段与完整赛程", descEn: "Grand Finals, stages and full schedule", accent: "#ff9f1c" },
+    { id: "ivl", mark: "IVL", nameZh: "第五人格 IVL", nameEn: "Identity V", descZh: "秋季赛 90 场赛程与赛果", descEn: "Autumn Split, 90 matches and results", accent: "#a78bfa" }
+  ];
   const MEDIA = {
     f1: {
       items: [
@@ -58,6 +67,9 @@
     }
   };
   const state = { kpl: "all", ivl: "all", lang: "zh", detail: null, lastFocus: null };
+  const initialDay = D.today || new Date().toISOString().slice(0, 10);
+  let homeMonth = initialDay.slice(0, 7);
+  let homeSelected = initialDay;
   try {
     const saved = localStorage.getItem("gridline-lang");
     if (saved === "en" || saved === "zh") state.lang = saved;
@@ -68,6 +80,7 @@
   const EN_MAP = new Map([
     ["赛事切换", "Series"],
     ["GRIDLINE 首页", "GRIDLINE home"],
+    ["首页", "Home"],
     ["英雄联盟", "League of Legends"],
     ["车手", "Driver"],
     ["车队", "Team"],
@@ -362,7 +375,291 @@
     if (state.lang === "en") applyLang("en");
   }
 
+  /* ---------------------------------------------------------- home */
+  function homeT(zh, en) { return state.lang === "en" ? en : zh; }
+
+  function homeDateKey(value) {
+    const p = cstParts(value);
+    if (!p) return "";
+    return `${p.y}-${p.m}-${p.d}`;
+  }
+
+  function homeEvents() {
+    const events = [];
+    const meta = Object.fromEntries(HOME_SERIES.map((s) => [s.id, s]));
+    const push = (e) => {
+      const s = meta[e.series];
+      if (!s) return;
+      events.push({ ...e, accent: s.accent, mark: s.mark, status: e.status || "upcoming" });
+    };
+    const score = (a, b) => (a != null && b != null ? `${a}:${b}` : "");
+
+    (D.f1.races || []).forEach((r) => {
+      const iso = r.datetime || (r.date ? `${r.date}T00:00:00+08:00` : "");
+      const p = cstParts(iso);
+      if (!p) return;
+      push({
+        id: `f1-${r.round}`, series: "f1", view: "f1", title: r.name,
+        sub: `${homeT("第", "Round ")} ${r.round} · ${r.circuit}`,
+        date: `${p.y}-${p.m}-${p.d}`, time: `${p.h}:${p.mi}`, ts: p.date.getTime(),
+        status: r.past ? "final" : "upcoming", score: ""
+      });
+    });
+
+    (D.fe.races || []).forEach((r) => {
+      const start = r.start || "";
+      const end = r.end || start;
+      if (!start) return;
+      const a = new Date(`${start}T12:00:00Z`);
+      const b = new Date(`${end}T12:00:00Z`);
+      if (Number.isNaN(a.getTime())) return;
+      let cursor = a;
+      let day = 1;
+      while (cursor <= b && day <= 4) {
+        const key = cursor.toISOString().slice(0, 10);
+        push({
+          id: `fe-${r.round}-${key}`, series: "fe", view: "fe", title: r.name,
+          sub: `${r.location || ""} · ${homeT("时间待定", "Time TBD")}`,
+          date: key, time: "", ts: cursor.getTime(), status: r.past ? "final" : "upcoming", score: ""
+        });
+        cursor = new Date(cursor.getTime() + 86400000);
+        day += 1;
+      }
+    });
+
+    (D.lol.worlds.matches || []).forEach((m, i) => {
+      const p = cstParts(m.date);
+      if (!p) return;
+      push({
+        id: `worlds-${i}`, series: "lol", view: "lol", title: `${m.teamA || "TBD"} vs ${m.teamB || "TBD"}`,
+        sub: `Worlds 2026 · ${m.stage || homeT("瑞士轮", "Swiss Stage")} · BO${m.bo || "3"}`,
+        date: `${p.y}-${p.m}-${p.d}`, time: `${p.h}:${p.mi}`, ts: p.date.getTime(),
+        status: m.status === "已结束" ? "final" : "upcoming", score: m.status === "已结束" ? score(m.scoreA, m.scoreB) : ""
+      });
+    });
+
+    [...(D.vct.upcoming || []), ...(D.vct.results || [])].forEach((m, i) => {
+      const p = cstParts(m.date);
+      if (!p) return;
+      push({
+        id: `vct-${i}`, series: "vct", view: "vct", title: `${m.teamA || "TBD"} vs ${m.teamB || "TBD"}`,
+        sub: `${m.event || "VCT"} · ${m.stage || ""}`,
+        date: `${p.y}-${p.m}-${p.d}`, time: `${p.h}:${p.mi}`, ts: p.date.getTime(),
+        status: m.status === "已结束" ? "final" : "upcoming", score: m.status === "已结束" ? score(m.scoreA, m.scoreB) : ""
+      });
+    });
+
+    (D.kpl.matches || []).forEach((m) => {
+      const p = cstParts(m.date);
+      if (!p) return;
+      push({
+        id: `kpl-${m.id}`, series: "kpl", view: "kpl", title: `${m.teamA || "TBD"} vs ${m.teamB || "TBD"}`,
+        sub: `${m.stage || ""} · BO${m.bo || "5"}${m.location ? ` · ${m.location}` : ""}`,
+        date: `${p.y}-${p.m}-${p.d}`, time: `${p.h}:${p.mi}`, ts: p.date.getTime(),
+        status: m.status === "已结束" ? "final" : "upcoming", score: m.status === "已结束" ? score(m.scoreA, m.scoreB) : ""
+      });
+    });
+
+    (D.ivl.matches || []).forEach((m, i) => {
+      const p = cstParts(m.date);
+      if (!p) return;
+      const a = m.abbrA || m.teamA || "TBD";
+      const b = m.abbrB || m.teamB || "TBD";
+      push({
+        id: `ivl-${i}`, series: "ivl", view: "ivl", title: `${a} vs ${b}`,
+        sub: `${m.stage || homeT("常规赛", "Regular Season")}`,
+        date: `${p.y}-${p.m}-${p.d}`, time: `${p.h}:${p.mi}`, ts: p.date.getTime(),
+        status: m.status === "已结束" ? "final" : "upcoming", score: m.status === "已结束" ? score(m.scoreA, m.scoreB) : ""
+      });
+    });
+
+    return events.sort((a, b) => a.ts - b.ts);
+  }
+
+  function homeNextEvent(events) {
+    const now = Date.now();
+    return events.find((e) => e.ts >= now && e.status !== "final") || events.find((e) => e.status !== "final") || events[events.length - 1] || null;
+  }
+
+  function homeSeriesNext(id) {
+    if (id === "f1" && D.f1.next) return `${D.f1.next.name} · ${fullCN(D.f1.next.datetime)}`;
+    if (id === "fe" && D.fe.next) return `${D.fe.next.name} · ${dayCN(`${D.fe.next.start}T00:00:00+08:00`)}`;
+    if (id === "lol") {
+      const m = D.lol.worlds.matches.find((x) => x.status !== "已结束");
+      if (m) return `${m.teamA} vs ${m.teamB} · ${md(m.date)} ${hm(m.date)}`;
+      return `${D.lol.worlds.teams.length} ${homeT("支队伍", "teams")}`;
+    }
+    if (id === "vct") {
+      const m = D.vct.upcoming[0];
+      return m ? `${m.teamA} vs ${m.teamB} · ${md(m.date)}` : `${D.vct.regions.length} ${homeT("个赛区", "regions")}`;
+    }
+    if (id === "kpl") {
+      const m = D.kpl.matches.find((x) => x.status !== "已结束");
+      return m ? `${m.teamA} vs ${m.teamB} · ${md(m.date)}` : `${D.kpl.matches.length} ${homeT("场", "matches")}`;
+    }
+    if (id === "ivl") {
+      const m = D.ivl.matches.find((x) => x.status !== "已结束");
+      return m ? `${m.abbrA || m.teamA} vs ${m.abbrB || m.teamB} · ${md(m.date)}` : `${D.ivl.matches.length} ${homeT("场", "matches")}`;
+    }
+    return "";
+  }
+
+  function homeSeriesCount(id) {
+    if (id === "f1") return `${D.f1.races.length} ${homeT("站", "rounds")}`;
+    if (id === "fe") return `${D.fe.total || D.fe.races.length} ${homeT("站", "races")}`;
+    if (id === "lol") return `${D.lol.worlds.teams.length} ${homeT("队", "teams")}`;
+    if (id === "vct") return `${D.vct.regions.length} ${homeT("赛区", "regions")}`;
+    if (id === "kpl") return `${D.kpl.matches.length} ${homeT("场", "matches")}`;
+    if (id === "ivl") return `${D.ivl.matches.length} ${homeT("场", "matches")}`;
+    return "";
+  }
+
+  function homeEventRow(e) {
+    const final = e.status === "final";
+    const score = final && e.score ? `<span class="home-event-score">${esc(e.score)}</span>` : "";
+    return `<button type="button" class="home-event" data-go="${e.view}" style="--series-accent:${e.accent}">
+      <span class="home-event-time">${esc(e.time || homeT("待定", "TBD"))}</span>
+      <span class="home-event-body"><strong>${esc(e.title)}${score}</strong><span>${esc(e.sub)}</span></span>
+      <span class="home-event-mark">${esc(e.mark)}</span>
+    </button>`;
+  }
+
+  function homeCalendar(events) {
+    const [y, m] = homeMonth.split("-").map(Number);
+    if (!y || !m) return "";
+    const first = new Date(Date.UTC(y, m - 1, 1));
+    const start = (first.getUTCDay() + 6) % 7;
+    const count = new Map();
+    events.forEach((e) => {
+      if (!count.has(e.date)) count.set(e.date, []);
+      count.get(e.date).push(e);
+    });
+    const today = D.today;
+    const cells = [];
+    const cursor = new Date(Date.UTC(y, m - 1, 1 - start, 12));
+    for (let i = 0; i < 42; i += 1) {
+      const key = cursor.toISOString().slice(0, 10);
+      const day = cursor.getUTCDate();
+      const list = count.get(key) || [];
+      const cls = ["home-day"];
+      if (key.slice(0, 7) !== homeMonth) cls.push("is-other");
+      if (key === today) cls.push("is-today");
+      if (key === homeSelected) cls.push("is-selected");
+      if (list.length) cls.push("has-events");
+      if (key < today) cls.push("is-past");
+      const dots = list.slice(0, 3).map((e) => `<i style="--dot:${e.accent}"></i>`).join("");
+      cells.push(`<button type="button" class="${cls.join(" ")}" data-home-date="${key}" aria-label="${key}${list.length ? ` · ${list.length} ${homeT("场", "events")}` : ""}">
+        <span>${day}</span><span class="home-day-dots">${dots}</span>${list.length > 3 ? `<em>+${list.length - 3}</em>` : ""}
+      </button>`);
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+    const monthLabel = new Intl.DateTimeFormat(state.lang === "en" ? "en-US" : "zh-CN", { timeZone: "UTC", year: "numeric", month: "long" }).format(first);
+    const week = state.lang === "en" ? ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"] : ["一", "二", "三", "四", "五", "六", "日"];
+    const selectedEvents = events.filter((e) => e.date === homeSelected);
+    const nextFew = events.filter((e) => e.ts >= Date.now() && e.date !== homeSelected).slice(0, 3);
+    const selectedLabel = (() => {
+      const p = cstParts(`${homeSelected}T12:00:00+08:00`);
+      if (!p) return homeSelected;
+      return state.lang === "en"
+        ? new Intl.DateTimeFormat("en-US", { timeZone: CST, weekday: "short", month: "short", day: "numeric" }).format(p.date)
+        : `${p.m} 月 ${p.d} 日 · ${weekday(`${homeSelected}T12:00:00+08:00`)}`;
+    })();
+    const empty = selectedEvents.length ? "" : `<div class="home-cal-empty">
+      <strong>${homeT("这一天没有已收录的比赛", "No matches indexed for this day")}</strong>
+      <span>${homeT("可以切换到其他日期，或查看最近的比赛。", "Try another day, or open the next event.")}</span>
+    </div>`;
+    return `<div class="home-calendar-wrap">
+      <div class="panel home-calendar">
+        <div class="home-cal-head">
+          <div class="home-cal-title"><span class="section-kicker">${homeT("比赛日历", "MATCH CALENDAR")}</span><strong>${esc(monthLabel)}</strong></div>
+          <div class="home-cal-nav">
+            <button type="button" class="home-cal-btn" data-home-month="-1" aria-label="${homeT("上个月", "Previous month")}">‹</button>
+            <button type="button" class="home-cal-btn home-cal-today" data-home-today>${homeT("今天", "Today")}</button>
+            <button type="button" class="home-cal-btn" data-home-month="1" aria-label="${homeT("下个月", "Next month")}">›</button>
+          </div>
+        </div>
+        <div class="home-cal-week">${week.map((w) => `<span>${w}</span>`).join("")}</div>
+        <div class="home-cal-grid">${cells.join("")}</div>
+      </div>
+      <aside class="panel home-agenda">
+        <div class="home-agenda-head"><div><span class="section-kicker">${homeT("当天赛程", "ON THIS DAY")}</span><strong>${esc(selectedLabel)}</strong></div><span class="home-agenda-count">${selectedEvents.length} ${homeT("场", "EVT")}</span></div>
+        <div class="home-event-list">${selectedEvents.length ? selectedEvents.map(homeEventRow).join("") : empty}</div>
+        ${nextFew.length ? `<div class="home-agenda-next"><span class="section-kicker">${homeT("接下来", "NEXT UP")}</span>${nextFew.map(homeEventRow).join("")}</div>` : ""}
+      </aside>
+    </div>`;
+  }
+
+  function renderHome() {
+    const events = homeEvents();
+    const today = D.today || initialDay;
+    const todays = events.filter((e) => e.date === today);
+    const next = homeNextEvent(events);
+    const todayLabel = (() => {
+      const p = cstParts(`${today}T12:00:00+08:00`);
+      return p ? (state.lang === "en"
+        ? new Intl.DateTimeFormat("en-US", { timeZone: CST, weekday: "long", month: "short", day: "numeric" }).format(p.date)
+        : `${p.y}.${p.m}.${p.d} · ${weekday(`${today}T12:00:00+08:00`)}`) : today;
+    })();
+    const todayRows = todays.length ? todays.slice(0, 3).map(homeEventRow).join("") : `<div class="home-today-empty">${homeT("今天没有已收录的比赛，先看下一场。", "Nothing indexed today. Here is the next one.")}</div>`;
+    const nextText = next ? `${homeT("下一场", "Next")} · ${next.title} · ${md(`${next.date}T${next.time || "12:00"}:00+08:00`)}` : homeT("暂无后续比赛", "No upcoming events");
+    const cards = HOME_SERIES.map((s) => `<button type="button" class="home-series" data-go="${s.id}" style="--series-accent:${s.accent}">
+      <span class="home-series-top"><span class="home-series-mark">${s.mark}</span><span class="home-series-count">${homeSeriesCount(s.id)}</span></span>
+      <strong>${state.lang === "en" ? s.nameEn : s.nameZh}</strong>
+      <span class="home-series-desc">${state.lang === "en" ? s.descEn : s.descZh}</span>
+      <span class="home-series-next">${esc(homeSeriesNext(s.id))}</span>
+      <span class="home-series-enter">${homeT("进入板块", "Open series")} ↗</span>
+    </button>`).join("");
+
+    $("#view-home").innerHTML = `
+      <div class="home-wrap">
+        <section class="home-hero">
+          <div class="home-hero-copy">
+            <span class="section-kicker">${homeT("赛车 × 电竞 · 一个入口", "MOTORSPORT × ESPORTS · ONE PLACE")}</span>
+            <h1 class="home-title">${homeT("把赛车与电竞，<br><em>放进同一张时间表。</em>", "One timeline.<br><em>Six series.</em>")}</h1>
+            <p class="home-lede">${homeT(
+              "GRIDLINE 把 F1、Formula E、英雄联盟、VCT、KPL 与 IVL 的下一场比赛、积分、结果、可点击详情和官方影像收进一个页面。先看今天有什么，再决定把晚上交给哪一场。",
+              "GRIDLINE brings Formula 1, Formula E, League of Legends, VCT, KPL and IVL into one place: what is next, standings, results, clickable details and official media."
+            )}</p>
+            <div class="home-actions">
+              <button type="button" class="btn primary" data-scroll="home-calendar">${homeT("今天看什么", "What's on today")} <span>↓</span></button>
+              <button type="button" class="btn" data-go="f1">${homeT("从 F1 开始", "Start with F1")} <span>↗</span></button>
+            </div>
+            <div class="home-meta-line"><span>${homeT("数据快照", "Snapshot")} ${esc(D.today || "")}</span><span>${homeT("北京时间", "Beijing time")} UTC+8</span><span>${events.length} ${homeT("场收录", "indexed events")}</span></div>
+          </div>
+          <aside class="home-today">
+            <div class="home-today-head"><span class="section-kicker">${homeT("今天", "TODAY")}</span><strong>${esc(todayLabel)}</strong><span>${todays.length} ${homeT("场可看", "to watch")}</span></div>
+            <div class="home-today-list">${todayRows}</div>
+            <div class="home-next-line">${esc(nextText)}</div>
+          </aside>
+        </section>
+
+        <div class="home-stats">
+          <div class="stat-card"><span class="stat-k">${homeT("赛事", "SERIES")}</span><div class="stat-v">6</div><div class="stat-sub">${homeT("赛车 + 电竞", "motorsport + esports")}</div></div>
+          <div class="stat-card"><span class="stat-k">${homeT("今日可看", "TODAY")}</span><div class="stat-v">${todays.length}</div><div class="stat-sub">${homeT("场已收录", "events indexed")}</div></div>
+          <div class="stat-card"><span class="stat-k">${homeT("F1 赛季", "F1 SEASON")}</span><div class="stat-v">${D.f1.races.length}</div><div class="stat-sub">${homeT("站比赛", "rounds")}</div></div>
+          <div class="stat-card"><span class="stat-k">${homeT("全部收录", "INDEXED")}</span><div class="stat-v">${events.length}</div><div class="stat-sub">${homeT("场 / 个比赛日", "events / race days")}</div></div>
+        </div>
+
+        <section class="home-section" id="home-calendar">
+          <div class="section-head"><div><span class="section-kicker">${homeT("找到今晚", "FIND TONIGHT")}</span><h2>${homeT("当天有什么比赛？", "What can I watch today?")}</h2></div><p>${homeT("默认停在今天；点日期切换，左边是月历，右边是当天议程。", "Starts on today. Pick a date on the left, read the day's agenda on the right.")}</p></div>
+          ${homeCalendar(events)}
+        </section>
+
+        <section class="home-pillars">
+          <article class="home-pillar"><span>01</span><h3>${homeT("赛程一眼看完", "Schedule at a glance")}</h3><p>${homeT("六条赛事线的下一场、当天比赛和完整赛历，不再来回切 App。", "Next up, today and full calendars across six series, without app-hopping.")}</p></article>
+          <article class="home-pillar"><span>02</span><h3>${homeT("点开就有上下文", "Details on click")}</h3><p>${homeT("车手、战队、比赛都能展开：积分、历史、分组和对阵，数据来自公开来源。", "Drivers, teams and matches expand into standings, history, groups and head-to-heads from public sources.")}</p></article>
+          <article class="home-pillar"><span>03</span><h3>${homeT("官方影像与双语", "Official media, two languages")}</h3><p>${homeT("每页保留官方照片与可点播视频；中 / EN 随时切换。", "Official photos and click-to-play videos on every page, with a 中 / EN switch.")}</p></article>
+        </section>
+
+        <section class="home-section home-series-section">
+          <div class="section-head"><div><span class="section-kicker">${homeT("六个板块", "SIX SERIES")}</span><h2>${homeT("从你关心的那一场开始", "Start with your series")}</h2></div><button type="button" class="btn small" data-scroll="home-calendar">${homeT("回到日历", "Back to calendar")} ↑</button></div>
+          <div class="home-series-grid">${cards}</div>
+        </section>
+      </div>`;
+  }
+
   function renderAll() {
+    renderHome();
     renderF1();
     renderFE();
     renderLoL();
@@ -408,7 +705,7 @@
   }
 
   function mountMedia() {
-    VIEWS.forEach((key) => {
+    SERIES.forEach((key) => {
       const view = document.getElementById("view-" + key);
       if (!view) return;
       view.querySelectorAll(".media-section").forEach((el) => el.remove());
@@ -546,72 +843,18 @@
     }
     document.body.classList.add("intro-open");
     let done = false;
-    let attempted = false;
-    const voiceBtn = $("#intro-voice");
-
-    const pickVoice = () => {
-      const voices = window.speechSynthesis ? speechSynthesis.getVoices() : [];
-      const female = ["xiaoxiao", "huihui", "yaoyao", "tingting", "mei", "female", "女"];
-      return voices.find((v) => /^zh/i.test(v.lang) && female.some((n) => v.name.toLowerCase().includes(n)))
-        || voices.find((v) => /^zh/i.test(v.lang))
-        || voices.find((v) => female.some((n) => v.name.toLowerCase().includes(n)))
-        || null;
-    };
-
-    const speakWelcome = (force = false) => {
-      if (done || !window.speechSynthesis) return;
-      if (attempted && !force) return;
-      attempted = true;
-      const u = new SpeechSynthesisUtterance("欢迎来到，GRIDLINE");
-      u.lang = "zh-CN";
-      u.rate = 0.82;
-      u.pitch = 0.72;
-      u.volume = 0.9;
-      const voice = pickVoice();
-      if (voice) u.voice = voice;
-      u.onstart = () => el.classList.add("is-speaking");
-      u.onend = () => el.classList.remove("is-speaking");
-      u.onerror = () => el.classList.remove("is-speaking");
-      try {
-        speechSynthesis.cancel();
-        speechSynthesis.speak(u);
-      } catch (_) {}
-    };
-
     const finish = () => {
       if (done) return;
       done = true;
-      try { speechSynthesis.cancel(); } catch (_) {}
-      el.classList.remove("is-speaking");
       el.classList.add("is-done");
       document.body.classList.remove("intro-open");
       try { sessionStorage.setItem("gridline-intro", "1"); } catch (_) {}
       setTimeout(() => el.remove(), 800);
     };
     $("#intro-skip").addEventListener("click", finish);
-    if (voiceBtn) {
-      voiceBtn.addEventListener("click", (event) => {
-        event.stopPropagation();
-        speakWelcome(true);
-      });
-    }
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape") finish();
     });
-    el.addEventListener("pointerdown", () => {
-      if (done || !window.speechSynthesis) return;
-      if (!speechSynthesis.speaking) speakWelcome(true);
-    }, { once: true });
-    if (window.speechSynthesis) {
-      if (speechSynthesis.getVoices().length) setTimeout(() => speakWelcome(), 320);
-      else {
-        speechSynthesis.onvoiceschanged = () => {
-          speechSynthesis.onvoiceschanged = null;
-          if (!done) setTimeout(() => speakWelcome(), 120);
-        };
-        setTimeout(() => speakWelcome(), 720);
-      }
-    }
     setTimeout(finish, 3200);
   }
 
@@ -1841,16 +2084,16 @@
   /* ---------------------------------------------------------- shell */
   function parseHash(hash = location.hash) {
     const raw = String(hash || "").replace(/^#/, "").replace(/^\/+/, "");
-    if (!raw) return { view: "f1", anchor: null };
+    if (!raw) return { view: "home", anchor: null };
     if (VIEWS.includes(raw)) return { view: raw, anchor: null };
     if (raw.startsWith("worlds")) return { view: "lol", anchor: raw };
     const prefix = raw.split("-")[0];
     if (VIEWS.includes(prefix)) return { view: prefix, anchor: raw };
-    return { view: "f1", anchor: null };
+    return { view: "home", anchor: null };
   }
 
   function go(view, push = true, anchor = null) {
-    if (!VIEWS.includes(view)) view = "f1";
+    if (!VIEWS.includes(view)) view = "home";
     document.body.dataset.view = view;
     VIEWS.forEach((v) => {
       const el = document.getElementById("view-" + v);
@@ -1886,6 +2129,46 @@
     $("#clock").textContent = new Intl.DateTimeFormat("zh-CN", { timeZone: CST, hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(new Date());
 
     document.querySelectorAll(".nav-item").forEach((b) => b.addEventListener("click", () => go(b.dataset.view)));
+    document.addEventListener("click", (e) => {
+      const goEl = e.target.closest("[data-go]");
+      if (goEl) {
+        e.preventDefault();
+        go(goEl.dataset.go);
+        return;
+      }
+      const scrollEl = e.target.closest("[data-scroll]");
+      if (scrollEl) {
+        e.preventDefault();
+        document.getElementById(scrollEl.dataset.scroll)?.scrollIntoView({ behavior: "smooth", block: "start" });
+        return;
+      }
+      const monthEl = e.target.closest("[data-home-month]");
+      if (monthEl) {
+        e.preventDefault();
+        const [y, m] = homeMonth.split("-").map(Number);
+        const next = new Date(Date.UTC(y, m - 1 + Number(monthEl.dataset.homeMonth), 1));
+        homeMonth = `${next.getUTCFullYear()}-${String(next.getUTCMonth() + 1).padStart(2, "0")}`;
+        const inMonth = homeEvents().filter((ev) => ev.date.startsWith(homeMonth));
+        homeSelected = inMonth[0]?.date || `${homeMonth}-01`;
+        renderHome();
+        return;
+      }
+      const todayEl = e.target.closest("[data-home-today]");
+      if (todayEl) {
+        e.preventDefault();
+        homeMonth = initialDay.slice(0, 7);
+        homeSelected = initialDay;
+        renderHome();
+        return;
+      }
+      const dayEl = e.target.closest("[data-home-date]");
+      if (dayEl) {
+        e.preventDefault();
+        homeSelected = dayEl.dataset.homeDate;
+        homeMonth = homeSelected.slice(0, 7);
+        renderHome();
+      }
+    });
     document.querySelectorAll('a[href^="#"]').forEach((a) => a.addEventListener("click", (e) => {
       const raw = a.getAttribute("href").slice(1);
       if (!raw) return;

@@ -27,7 +27,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/styles.css">
 </head>
-<body data-view="f1">
+<body data-view="home">
   <div class="intro" id="intro" role="dialog" aria-label="GRIDLINE 开场动画">
     <div class="intro-grid" aria-hidden="true"></div>
     <div class="intro-speed" aria-hidden="true"></div>
@@ -37,10 +37,6 @@
         <span>G</span><span>R</span><span>I</span><span>D</span><span>L</span><span>I</span><span>N</span><span>E</span>
       </div>
       <div class="intro-sub">MOTORSPORT <b>×</b> ESPORTS</div>
-      <button class="intro-voice" id="intro-voice" type="button" aria-label="重播欢迎语音 / Replay welcome voice">
-        <span class="voice-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
-        <span>欢迎语音 / VOICE</span>
-      </button>
       <div class="intro-foot"><span>F1 · FE · LOL · VCT · KPL · IVL</span><span>2026</span></div>
     </div>
     <button class="intro-skip" id="intro-skip" type="button">跳过 / Skip <kbd>Esc</kbd></button>
@@ -49,7 +45,7 @@
   <div class="grid-overlay" aria-hidden="true"></div>
 
   <header class="topbar">
-    <a class="brand" href="#f1" aria-label="GRIDLINE 首页">
+    <a class="brand" href="#home" aria-label="GRIDLINE 首页">
       <span class="brand-mark" aria-hidden="true">
         <svg viewBox="0 0 40 40" width="34" height="34">
           <path d="M5 31V9h5.6l9.4 14.7L29.4 9H35v22h-5.2V17.9L20 32.2 10.2 17.9V31H5Z"/>
@@ -63,7 +59,8 @@
     </a>
 
     <nav class="nav" aria-label="赛事切换">
-      <button type="button" class="nav-item is-active" data-view="f1" aria-controls="view-f1" aria-current="page"><i></i><span>F1</span></button>
+      <button type="button" class="nav-item is-active" data-view="home" aria-controls="view-home" aria-current="page"><i></i><span>首页</span></button>
+      <button type="button" class="nav-item" data-view="f1" aria-controls="view-f1"><i></i><span>F1</span></button>
       <button type="button" class="nav-item" data-view="fe" aria-controls="view-fe"><i></i><span>Formula E</span></button>
       <button type="button" class="nav-item" data-view="lol" aria-controls="view-lol"><i></i><span>英雄联盟</span></button>
       <button type="button" class="nav-item" data-view="vct" aria-controls="view-vct"><i></i><span>VCT</span></button>
@@ -87,7 +84,8 @@
   </div>
 
   <main id="app">
-    <section class="view is-active" id="view-f1" data-view="f1" aria-label="Formula 1"></section>
+    <section class="view is-active" id="view-home" data-view="home" aria-label="GRIDLINE 首页"></section>
+    <section class="view" id="view-f1" data-view="f1" aria-label="Formula 1"></section>
     <section class="view" id="view-fe" data-view="fe" aria-label="Formula E"></section>
     <section class="view" id="view-lol" data-view="lol" aria-label="英雄联盟"></section>
     <section class="view" id="view-vct" data-view="vct" aria-label="无畏契约 VCT"></section>
