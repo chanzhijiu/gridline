@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#06070a">
+  <meta name="color-scheme" content="dark">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="GRIDLINE">
+  <title>GRIDLINE — F1 · FE · LoL · VCT · KPL · IVL</title>
+  <meta name="description" content="F1、Formula E、英雄联盟、无畏契约、KPL 与 IVL 的一站式赛程与积分看板。">
+  <meta name="format-detection" content="telephone=no">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="GRIDLINE — 赛车与电竞一站式看板">
+  <meta property="og:description" content="F1、FE、LoL、VCT、KPL、IVL 的赛程、积分与倒计时。">
+  <meta name="twitter:card" content="summary">
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/icon-180.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://ok.166.net" crossorigin>
+  <link rel="preconnect" href="https://owcdn.net" crossorigin>
+  <link rel="preconnect" href="https://smhtv-pic.tga.qq.com" crossorigin>
+  <link rel="preconnect" href="https://img.scoregg.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body data-view="f1">
+  <div class="ambient" aria-hidden="true"></div>
+  <div class="grid-overlay" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <a class="brand" href="#f1" aria-label="GRIDLINE 首页">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 40 40" width="34" height="34">
+          <path d="M5 31V9h5.6l9.4 14.7L29.4 9H35v22h-5.2V17.9L20 32.2 10.2 17.9V31H5Z"/>
+          <path d="M5 5h30v2.4H5z" opacity=".55"/>
+        </svg>
+      </span>
+      <span class="brand-text">
+        <strong>GRIDLINE</strong>
+        <em>MOTORSPORT × ESPORTS</em>
+      </span>
+    </a>
+
+    <nav class="nav" aria-label="赛事切换">
+      <button type="button" class="nav-item is-active" data-view="f1" aria-controls="view-f1" aria-current="page"><i></i><span>F1</span></button>
+      <button type="button" class="nav-item" data-view="fe" aria-controls="view-fe"><i></i><span>Formula E</span></button>
+      <button type="button" class="nav-item" data-view="lol" aria-controls="view-lol"><i></i><span>英雄联盟</span></button>
+      <button type="button" class="nav-item" data-view="vct" aria-controls="view-vct"><i></i><span>VCT</span></button>
+      <button type="button" class="nav-item" data-view="kpl" aria-controls="view-kpl"><i></i><span>KPL</span></button>
+      <button type="button" class="nav-item" data-view="ivl" aria-controls="view-ivl"><i></i><span>IVL</span></button>
+    </nav>
+
+    <div class="topmeta">
+      <span class="clock" id="clock">--:--:--</span>
+      <span class="tz">CST · UTC+8</span>
+    </div>
+  </header>
+
+  <div class="ticker" aria-hidden="true">
+    <div class="ticker-label"><span class="live-dot"></span>NOW</div>
+    <div class="ticker-window"><div class="ticker-track" id="ticker"></div></div>
+  </div>
+
+  <main id="app">
+    <section class="view is-active" id="view-f1" data-view="f1" aria-label="Formula 1"></section>
+    <section class="view" id="view-fe" data-view="fe" aria-label="Formula E"></section>
+    <section class="view" id="view-lol" data-view="lol" aria-label="英雄联盟"></section>
+    <section class="view" id="view-vct" data-view="vct" aria-label="无畏契约 VCT"></section>
+    <section class="view" id="view-kpl" data-view="kpl" aria-label="王者荣耀 KPL"></section>
+    <section class="view" id="view-ivl" data-view="ivl" aria-label="第五人格 IVL"></section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <span class="brand-mark small" aria-hidden="true">
+          <svg viewBox="0 0 40 40" width="26" height="26"><path d="M5 31V9h5.6l9.4 14.7L29.4 9H35v22h-5.2V17.9L20 32.2 10.2 17.9V31H5Z"/></svg>
+        </span>
+        <div>
+          <strong>GRIDLINE</strong>
+          <p>把赛车与电竞放进同一张时间表。</p>
+        </div>
+      </div>
+      <div class="footer-meta">
+        <div><span>数据快照</span><b id="generated">—</b></div>
+        <div><span>时区</span><b>北京时间 UTC+8</b></div>
+        <div><span>刷新</span><b><code>python build_data.py</code></b></div>
+      </div>
+      <div class="footer-sources" id="sources"></div>
+    </div>
+    <p class="footer-note">非官方粉丝项目。赛程、积分与排名均来自公开数据源，最终以官方公告为准。F1 数据经 Jolpica / Ergast API，FE 来自 Formula E 官方日历，LoL 来自 ScoreGG，Valorant 来自 VLR.GG，KPL 与 IVL 来自官方赛事接口。</p>
+  </footer>
+
+  <noscript><p class="noscript">请开启 JavaScript 以查看 GRIDLINE 看板。</p></noscript>
+  <script defer src="data.js"></script>
+  <script defer src="assets/app.js"></script>
+</body>
+</html>
