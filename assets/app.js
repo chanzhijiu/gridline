@@ -45,7 +45,7 @@
     const n = String(name || "?");
     const fb = /[\u4e00-\u9fa5]/.test(n) ? n.slice(0, 2) : n.split(/\s+/).map((w) => w[0]).join("").slice(0, 3).toUpperCase();
     if (!src) return `<span class="logo ${size}"><span class="logo-fb" style="display:grid">${esc(fb)}</span></span>`;
-    return `<span class="logo ${size}"><img loading="lazy" src="${esc(src)}" alt="${esc(name)}" onerror="this.classList.add('is-broken')"><span class="logo-fb">${esc(fb)}</span></span>`;
+    return `<span class="logo ${size}"><img loading="lazy" decoding="async" src="${esc(src)}" alt="${esc(name)}" onerror="this.classList.add('is-broken')"><span class="logo-fb">${esc(fb)}</span></span>`;
   }
 
   function cdCells(target) {

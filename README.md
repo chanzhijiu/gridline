@@ -2,6 +2,8 @@
 
 一个纯静态单页看板，把 **Formula 1、Formula E、英雄联盟（S16 全球总决赛 + LPL）、VCT、KPL、IVL** 放进同一张时间表。深色仪表盘风格，中文界面，按系列切换主题色。
 
+**在线地址：<https://chanzhijiu.github.io/gridline/>**
+
 ![views](https://img.shields.io/badge/views-F1%20%C2%B7%20FE%20%C2%B7%20LoL%20%C2%B7%20VCT%20%C2%B7%20KPL%20%C2%B7%20IVL-ff3b30)
 
 ## 快速打开
