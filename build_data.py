@@ -85,6 +85,33 @@ def build_f1():
     cs = get_json(f"{base}/constructorstandings.json?limit=100")["MRData"]["StandingsTable"]["StandingsLists"][0]["ConstructorStandings"]
     last = get_json(f"{base}/last/results.json?limit=100")["MRData"]["RaceTable"]["Races"][0]
 
+    # All completed race results, paginated: used by the detail drawer.
+    all_results = {}
+    offset = 0
+    while True:
+        page = get_json(f"{base}/results.json?limit=100&offset={offset}")
+        meta = page["MRData"]
+        for race in meta["RaceTable"]["Races"]:
+            rows = []
+            for res in race.get("Results", []):
+                rows.append({
+                    "pos": int(res.get("position", 0)),
+                    "driver": f'{res["Driver"]["givenName"]} {res["Driver"]["familyName"]}',
+                    "code": res["Driver"].get("code", ""),
+                    "team": res["Constructor"]["name"],
+                    "grid": int(res.get("grid", 0)),
+                    "points": float(res.get("points", 0)),
+                    "laps": int(res.get("laps", 0)),
+                    "status": res.get("status", ""),
+                    "time": (res.get("Time") or {}).get("time", ""),
+                    "fastest": (res.get("FastestLap") or {}).get("rank") == "1",
+                })
+            all_results[int(race["round"])] = rows
+        offset += 100
+        if offset >= int(meta.get("total", 0)):
+            break
+
+
     out_races = []
     for r in races:
         d = r["date"]
@@ -101,6 +128,7 @@ def build_f1():
             "datetime": iso(dt),
             "sprint": "Sprint" in r,
             "past": date.fromisoformat(d) < TODAY,
+            "results": all_results.get(int(r["round"]), []),
         })
 
     nxt = next((r for r in out_races if not r["past"]), out_races[-1] if out_races else None)

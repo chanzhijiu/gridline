@@ -13,7 +13,7 @@
 
   const CST = "Asia/Shanghai";
   const VIEWS = ["f1", "fe", "lol", "vct", "kpl", "ivl"];
-  const state = { kpl: "all", ivl: "all", lang: "zh" };
+  const state = { kpl: "all", ivl: "all", lang: "zh", detail: null, lastFocus: null };
   try {
     const saved = localStorage.getItem("gridline-lang");
     if (saved === "en" || saved === "zh") state.lang = saved;
@@ -43,8 +43,8 @@
     ["可以换一个电台试试", "Try another station"],
     ["音量", "Volume"],
     ["登录 / 打开官方 App", "Sign in / open official app"],
-    ["站内登录第三方音乐账号需要平台 OAuth 授权，当前提供公开电台；点服务名可在官方 App 登录。",
-      "Signing in to third-party music needs each platform's OAuth. This radio is public; open a service to sign in with its official app."],
+    ["QQ音乐 / 网易云目前不提供面向第三方网页的 OAuth 登录；当前提供公开电台，点服务名可在各自官方 App 登录。",
+      "QQ Music / NetEase Cloud Music do not offer third-party web OAuth. This radio is public; open either service in its official app to sign in."],
     ["Main Mix · 无广告", "Main Mix · ad-free"],
     ["Mellow Mix · 舒缓", "Mellow Mix · calm"],
     ["Rock Mix · 摇滚", "Rock Mix · guitars"],
@@ -301,6 +301,7 @@
     tickCountdowns();
     reapplyFilters();
     if (typeof musicUpdate === "function") musicUpdate();
+    if (state.detail) renderDetail();
     document.querySelectorAll("[data-lang]").forEach((b) => {
       const on = b.dataset.lang === next;
       b.classList.toggle("is-active", on);
@@ -324,6 +325,7 @@
     renderVCT();
     renderKPL();
     renderIVL();
+    decorateDetails();
   }
 
   let musicUpdate = null;
@@ -1025,9 +1027,9 @@
     return `<div class="match-item ${finished ? "" : "upcoming"}" data-status="${esc(m.status)}">
       <div class="match-main">
         <div class="match-date"><b>${md(m.date)}</b>${hm(m.date)}</div>
-        <div class="match-team">${logo(m.teamA, m.logoA, "sm")}<span class="name">${esc(m.abbrA || m.teamA)}</span></div>
+        <div class="match-team">${logo(m.teamA, m.logoA, "sm")}<span class="name" data-team="${esc(m.teamA)}">${esc(m.abbrA || m.teamA)}</span></div>
         <div class="match-score ${score === "VS" ? "vs" : ""}">${score}</div>
-        <div class="match-team right"><span class="name">${esc(m.abbrB || m.teamB)}</span>${logo(m.teamB, m.logoB, "sm")}</div>
+        <div class="match-team right"><span class="name" data-team="${esc(m.teamB)}">${esc(m.abbrB || m.teamB)}</span>${logo(m.teamB, m.logoB, "sm")}</div>
         <div class="match-tag">${esc(m.stage.slice(0, 2))}</div>
       </div>
       <div class="match-meta"><span class="ev">${esc(m.teamA)} vs ${esc(m.teamB)}</span><span class="status ${finished ? "final" : "live"}">${esc(m.status)}</span></div>
@@ -1071,6 +1073,581 @@
         ${sectionHead("Schedule", "赛程与赛果", "全部比赛 · 北京时间", `<div class="filter-row" data-filter-group="ivl"><button class="filter-btn is-active" data-filter="all" data-group="ivl">全部</button><button class="filter-btn" data-filter="upcoming" data-group="ivl">未结束</button><button class="filter-btn" data-filter="final" data-group="ivl">已结束</button></div>`)}
         <div class="panel"><div class="panel-body flush"><div class="match-list scroll" id="ivl-match-list">${i.matches.map(matchRowIVL).join("")}</div></div></div>
       </section>`;
+  }
+
+  /* ---------------------------------------------------------- detail drawer */
+  function L(zh, en) { return state.lang === "en" ? en : zh; }
+
+  function detailHead(kicker, title, sub) {
+    return `<div class="detail-eyebrow">${esc(kicker)}</div><h2 class="detail-title" id="detail-title">${title}</h2><p class="detail-sub">${sub}</p>`;
+  }
+  function detailStats(items) {
+    return `<div class="detail-stats">${items.map(([k, v]) => `<div class="detail-stat"><span>${esc(k)}</span><b>${v}</b></div>`).join("")}</div>`;
+  }
+  function detailSec(title, en, body, sub = "") {
+    return `<div class="detail-sec"><h4>${esc(L(title, en))}${sub ? `<span>${esc(sub)}</span>` : ""}</h4>${body}</div>`;
+  }
+  function detailRows(rows) {
+    if (!rows.length) return `<p class="detail-note">${L("暂无更多数据。", "No further data available.")}</p>`;
+    return `<div class="detail-rows">${rows.map((r) => {
+      const attrs = r.kind ? ` data-detail="${esc(r.kind)}" data-id="${esc(r.id)}"${r.sub ? ` data-sub="${esc(r.sub)}"` : ""} tabindex="0" role="button"` : "";
+      return `<div class="detail-row${r.kind ? " is-clickable" : ""}"${attrs}>
+        <div class="who"><b>${r.logo || ""}${r.who}</b><span>${r.sub2 || ""}</span></div>
+        <div class="what">${r.what || ""}</div>
+        <div class="val">${r.val || ""}</div>
+      </div>`;
+    }).join("")}</div>`;
+  }
+  function detailTeam(name, src) {
+    return `<span class="detail-team-head">${logo(name, src, "")}<span><b>${esc(name)}</b></span></span>`;
+  }
+  function teamTarget(name, kind, sub) {
+    return `<span class="is-clickable" data-detail="${esc(kind)}" data-id="${esc(name)}"${sub ? ` data-sub="${esc(sub)}"` : ""} tabindex="0" role="button">${esc(name)}</span>`;
+  }
+
+  const detailBuilders = {
+    "f1-driver"(id) {
+      const d = D.f1.drivers.find((x) => String(x.rank) === String(id));
+      if (!d) return null;
+      const leader = D.f1.drivers[0];
+      const hist = D.f1.races.filter((r) => r.results && r.results.length).map((r) => {
+        const row = r.results.find((x) => x.code === d.code || x.driver === d.name);
+        return row ? { ...row, round: r.round, race: r.name } : null;
+      }).filter(Boolean);
+      const podiums = hist.filter((x) => x.pos <= 3).length;
+      const best = hist.length ? Math.min(...hist.map((x) => x.pos)) : null;
+      const mates = D.f1.drivers.filter((x) => x.team === d.team && x.rank !== d.rank);
+      const rows = hist.slice(-6).reverse().map((x) => ({
+        kind: "f1-race", id: String(x.round),
+        who: `R${String(x.round).padStart(2, "0")} · ${esc(x.race)}`,
+        sub2: `${L("第", "P")}${x.pos}${x.grid ? ` · ${L("起步", "grid")} P${x.grid}` : ""}`,
+        what: x.status || "",
+        val: `<em>+${num(x.points)}</em> PTS`
+      }));
+      return {
+        kicker: `F1 · DRIVER · ${D.f1.season}`,
+        title: esc(d.name),
+        sub: `<b>${esc(d.team)}</b> · ${esc(d.nationality)} · ${esc(d.code)}`,
+        stats: [
+          [L("排名", "Rank"), `<em>#${d.rank}</em>`],
+          [L("积分", "Points"), num(d.points)],
+          [L("胜场", "Wins"), d.wins],
+          [L("领奖台", "Podiums"), podiums || "—"]
+        ],
+        body: detailSec("赛季走势", "Season form", detailRows(rows), `${hist.length} ${L("站有结果", "classified races")}`) +
+          detailSec("对比", "Context", `<div class="detail-pills">
+            <span class="detail-pill">${L("距榜首", "Gap to leader")} <b>${leader && leader.rank !== d.rank ? `−${num(leader.points - d.points)} PTS` : L("领跑", "Leader")}</b></span>
+            <span class="detail-pill">${L("最佳完赛", "Best finish")} <b>${best ? `P${best}` : "—"}</b></span>
+            <span class="detail-pill">${L("车队", "Team")} <b>${esc(d.team)}</b></span>
+          </div>`) +
+          (mates.length ? detailSec("队友", "Teammates", detailRows(mates.map((m) => ({
+            kind: "f1-driver", id: String(m.rank), who: esc(m.name), sub2: `${esc(m.code)} · ${esc(m.team)}`, what: `#${m.rank}`, val: `${num(m.points)} PTS`
+          })))) : "") +
+          `<p class="detail-note">${L("数据来自 Jolpica / Ergast 的车手积分与逐站结果；详情按当前快照计算。", "From Jolpica / Ergast standings and race results, computed from the current snapshot.")}</p>`
+      };
+    },
+
+    "f1-constructor"(id) {
+      const c = D.f1.constructors.find((x) => String(x.rank) === String(id));
+      if (!c) return null;
+      const drivers = D.f1.drivers.filter((d) => d.team === c.name);
+      const leader = D.f1.constructors[0];
+      return {
+        kicker: `F1 · CONSTRUCTOR · ${D.f1.season}`,
+        title: esc(c.name),
+        sub: `${esc(c.nationality)} · ${drivers.length} ${L("位车手", "drivers")}`,
+        stats: [
+          [L("排名", "Rank"), `<em>#${c.rank}</em>`],
+          [L("积分", "Points"), num(c.points)],
+          [L("胜场", "Wins"), c.wins],
+          [L("车手", "Drivers"), drivers.length]
+        ],
+        body: detailSec("车手阵容", "Driver line-up", detailRows(drivers.map((d) => ({
+          kind: "f1-driver", id: String(d.rank), who: esc(d.name), sub2: `${esc(d.code)} · ${esc(d.nationality)}`, what: `#${d.rank}`, val: `${num(d.points)} PTS`
+        })))) +
+          detailSec("对比", "Context", `<div class="detail-pills">
+            <span class="detail-pill">${L("距榜首", "Gap to leader")} <b>${leader && leader.rank !== c.rank ? `−${num(leader.points - c.points)} PTS` : L("领跑", "Leader")}</b></span>
+            <span class="detail-pill">${L("胜场", "Wins")} <b>${c.wins}</b></span>
+          </div>`) +
+          "<p class=\"detail-note\">" + L("车队积分与胜场来自 Jolpica / Ergast 车队积分榜。", "Constructor points and wins from the Jolpica / Ergast standings.") + "</p>"
+      };
+    },
+
+    "f1-race"(id) {
+      const r = D.f1.races.find((x) => String(x.round) === String(id));
+      if (!r) return null;
+      const podium = (r.results || []).slice(0, 3);
+      const resultRows = (r.results || []).slice(0, 8).map((x) => ({
+        who: `${x.pos}. ${esc(x.driver)}`, sub2: `${esc(x.team)} · ${esc(x.code)}`,
+        what: x.grid ? `${L("起步", "grid")} P${x.grid}` : "",
+        val: x.time || (x.status !== "Finished" ? esc(x.status) : "")
+      }));
+      return {
+        kicker: `F1 · ROUND ${String(r.round).padStart(2, "0")} · ${r.past ? L("已结束", "COMPLETED") : L("未开始", "UPCOMING")}`,
+        title: esc(r.name),
+        sub: `<b>${esc(r.circuit)}</b> · ${esc(r.locality)}, ${esc(r.country)}<br>${fullCN(r.datetime)} · ${L("北京时间", "Beijing time")}`,
+        stats: [
+          [L("轮次", "Round"), `R${String(r.round).padStart(2, "0")}`],
+          [L("日期", "Date"), md(r.datetime)],
+          [L("赛制", "Format"), r.sprint ? "SPRINT" : "GP"],
+          [L("状态", "Status"), r.past ? L("已结束", "Done") : L("未开始", "Upcoming")]
+        ],
+        body: (resultRows.length ? detailSec("正赛结果", "Race result", detailRows(resultRows), "TOP 8") : detailSec("正赛结果", "Race result", `<p class="detail-note">${L("该站尚未开始，暂无比赛结果。", "This round has not started; no results yet.")}</p>`)) +
+          (podium.length ? detailSec("领奖台", "Podium", `<div class="detail-pills">${podium.map((p) => `<span class="detail-pill">P${p.pos} <b>${esc(p.driver)}</b> · ${esc(p.team)}</span>`).join("")}</div>`) : "")
+      };
+    },
+
+    "fe-weekend"(id) {
+      const races = D.fe.races.filter((r) => String(r.weekend) === String(id));
+      if (!races.length) return null;
+      const first = races[0], last = races[races.length - 1];
+      return {
+        kicker: `FORMULA E · SEASON ${D.fe.season} · ${L("比赛周末", "RACE WEEKEND")}`,
+        title: esc(first.location),
+        sub: `${esc(first.country)} · ${md(first.start + "T00:00:00+08:00")}${first.start !== last.end ? ` – ${md(last.end + "T00:00:00+08:00")}` : ""}`,
+        stats: [
+          [L("分站", "Races"), races.length],
+          [L("日期", "Date"), md(first.start + "T00:00:00+08:00")],
+          [L("双赛", "Double-header"), races.length > 1 ? L("是", "Yes") : L("否", "No")],
+          [L("状态", "Status"), races.every((r) => r.past) ? L("已结束", "Done") : L("未开始", "Upcoming")]
+        ],
+        body: detailSec("分站", "Rounds", detailRows(races.map((r) => ({
+          kind: "fe-weekend", id: String(r.weekend), who: `R${String(r.round).padStart(2, "0")} · ${esc(r.name.replace(/^R\d+\s+/, ""))}`,
+          sub2: `${md(r.start + "T00:00:00+08:00")}${r.start !== r.end ? ` – ${md(r.end + "T00:00:00+08:00")}` : ""}`,
+          what: r.past ? L("已结束", "Done") : L("未开始", "Upcoming"), val: ""
+        })))) +
+          `<p class="detail-note">${L("Formula E 官方日历提供比赛周末与分站日期；本页不虚构车队/车手积分。", "The official Formula E calendar provides weekend and race dates; no team or driver standings are invented here.")}</p>`
+      };
+    },
+
+    "worlds-team"(id) {
+      const t = D.lol.worlds.teams.find((x) => x.name === id);
+      if (!t) return null;
+      const ms = D.lol.worlds.matches.filter((m) => m.teamA === id || m.teamB === id);
+      return {
+        kicker: `WORLDS ${D.lol.worlds.id} · SWISS · TEAM`,
+        title: esc(t.name),
+        sub: `${esc(t.status)} · ${t.w}–${t.l} · ${L("小局", "games")} ${t.rw}–${t.rl}`,
+        stats: [
+          [L("排名", "Rank"), `#${t.rank}`],
+          [L("大场", "Record"), `${t.w}–${t.l}`],
+          [L("净胜", "Diff"), `${t.diff > 0 ? "+" : ""}${t.diff}`],
+          [L("胜率", "Win rate"), `${t.rate}%`]
+        ],
+        body: detailSec("本周比赛", "This week's matches", detailRows(ms.map((m) => ({
+          kind: "worlds-match", id: String(D.lol.worlds.matches.indexOf(m)),
+          who: `${esc(m.teamA)} vs ${esc(m.teamB)}`,
+          sub2: `${m.date ? `${md(m.date)} ${hm(m.date)}` : ""} · BO${esc(m.bo)}`,
+          what: esc(m.stage || "瑞士轮"), val: m.status === "已结束" ? `${m.scoreA} : ${m.scoreB}` : L("未开始", "Upcoming")
+        })))) +
+          `<p class="detail-note">${L("瑞士轮 3 胜晋级、3 负淘汰；对阵数据来自 ScoreGG 快照。", "Three wins advance, three losses eliminate; bracket data from the ScoreGG snapshot.")}</p>`
+      };
+    },
+
+    "worlds-match"(id) {
+      const m = D.lol.worlds.matches[Number(id)];
+      if (!m) return null;
+      return {
+        kicker: `WORLDS · ${esc(m.stage || "SWISS")} · MATCH`,
+        title: `${esc(m.teamA)} <em>${m.status === "已结束" ? `${esc(m.scoreA)} : ${esc(m.scoreB)}` : "VS"}</em> ${esc(m.teamB)}`,
+        sub: `<b>${m.date ? `${md(m.date)} ${hm(m.date)}` : L("时间待定", "Time TBD")}</b> · BO${esc(m.bo)} · ${esc(m.status)}`,
+        stats: [
+          [L("赛事", "Event"), "WORLDS"],
+          [L("阶段", "Stage"), esc(m.stage || "Swiss")],
+          [L("状态", "Status"), esc(m.status)],
+          [L("赛制", "Format"), `BO${esc(m.bo)}`]
+        ],
+        body: detailSec("对阵", "Match-up", `<div class="detail-pills"><span class="detail-pill">${teamTarget(m.teamA, "worlds-team")}</span><span class="detail-pill">${teamTarget(m.teamB, "worlds-team")}</span></div>`) +
+          `<p class="detail-note">${L("比分与状态来自 ScoreGG 快照；未开始场次不预填比分。", "Scores and status from the ScoreGG snapshot; upcoming matches have no pre-filled score.")}</p>`
+      };
+    },
+
+    "lpl-team"(id, sub) {
+      const group = D.lol.lpl.groups.find((g) => g.name === sub) || D.lol.lpl.groups.find((g) => g.teams.some((t) => t.name === id));
+      if (!group) return null;
+      const t = group.teams.find((x) => x.name === id);
+      if (!t) return null;
+      return {
+        kicker: `LPL · SPLIT 3 · ${esc(group.name)}`,
+        title: esc(t.name),
+        sub: `${esc(group.name)} · #${t.rank} · ${t.w}–${t.l}`,
+        stats: [
+          [L("排名", "Rank"), `#${t.rank}`],
+          [L("大场", "Record"), `${t.w}–${t.l}`],
+          [L("小局", "Games"), `${t.rw}–${t.rl}`],
+          [L("胜率", "Win rate"), `${t.rate}%`]
+        ],
+        body: detailSec("分组", "Group", detailRows(group.teams.map((x) => ({
+          kind: "lpl-team", id: x.name, sub: group.name, who: esc(x.name), sub2: `${x.w}–${x.l} · ${x.rate}%`,
+          what: `#${x.rank}`, val: `${x.diff > 0 ? "+" : ""}${x.diff}`
+        })))) +
+          `<p class="detail-note">${L("LPL 展示第三赛段常规赛最终积分；分组、战绩来自 ScoreGG。", "LPL shows the final Split 3 regular-season standings; groups and records from ScoreGG.")}</p>`
+      };
+    },
+
+    "vct-region"(id) {
+      const r = D.vct.regions.find((x) => x.name === id);
+      if (!r) return null;
+      return {
+        kicker: "VCT · WORLD RANKINGS · REGION",
+        title: esc(r.name),
+        sub: `${r.teams.length} ${L("支战队", "teams")} · VLR.GG`,
+        stats: [
+          [L("战队", "Teams"), r.teams.length],
+          [L("榜首", "Leader"), esc(r.teams[0]?.name || "—")],
+          [L("积分", "Points"), num(r.teams[0]?.points || 0)],
+          [L("地区", "Region"), esc(r.name)]
+        ],
+        body: detailSec("排名", "Ranking", detailRows(r.teams.map((t) => ({
+          kind: "vct-team", id: t.name, sub: r.name, who: esc(t.name), sub2: esc(t.country),
+          what: `#${t.rank}`, val: `${num(t.points)} PTS`
+        })))) +
+          `<p class="detail-note">${L("VLR.GG 的世界排名按赛区列出，每区前 10 名。", "VLR.GG world rankings are listed by region, top 10 each.")}</p>`
+      };
+    },
+
+    "vct-team"(id, sub) {
+      const region = D.vct.regions.find((r) => r.name === sub && r.teams.some((t) => t.name === id)) ||
+        D.vct.regions.find((r) => r.teams.some((t) => t.name === id));
+      if (!region) return null;
+      const t = region.teams.find((x) => x.name === id);
+      if (!t) return null;
+      const ms = D.vct.upcoming.concat(D.vct.results).filter((m) => m.teamA === id || m.teamB === id);
+      return {
+        kicker: `VCT · ${esc(region.name)} · TEAM`,
+        title: esc(t.name),
+        sub: `${esc(t.country)} · #${t.rank} · ${num(t.points)} PTS`,
+        stats: [
+          [L("赛区", "Region"), esc(region.name)],
+          [L("排名", "Rank"), `#${t.rank}`],
+          [L("积分", "Points"), num(t.points)],
+          [L("国家/地区", "Country"), esc(t.country)]
+        ],
+        body: detailSec("赛区排名", "Regional ranking", detailRows(region.teams.slice(0, 5).map((x) => ({
+          kind: "vct-team", id: x.name, sub: region.name, who: esc(x.name), sub2: esc(x.country),
+          what: `#${x.rank}`, val: `${num(x.points)} PTS`
+        })))) +
+          (ms.length ? detailSec("相关比赛", "Related matches", detailRows(ms.map((m) => ({
+            kind: "vct-match", id: m.status === "已结束" ? "r" + D.vct.results.indexOf(m) : "u" + D.vct.upcoming.indexOf(m),
+            who: `${esc(m.teamA)} vs ${esc(m.teamB)}`, sub2: `${md(m.date)} ${hm(m.date)}`,
+            what: esc(m.event), val: m.status === "已结束" ? `${m.scoreA} : ${m.scoreB}` : L("未开始", "Upcoming")
+          })))) : "") +
+          `<p class="detail-note">${L("排名与赛程来自 VLR.GG；战队页只汇总本站已抓到的比赛。", "Rankings and matches from VLR.GG; this page only aggregates matches captured here.")}</p>`
+      };
+    },
+
+    "vct-match"(id) {
+      const key = String(id || "");
+      const isResult = key.startsWith("r");
+      const list = isResult ? D.vct.results : D.vct.upcoming;
+      const m = list[Number(key.slice(1))];
+      if (!m) return null;
+      return {
+        kicker: `VCT · ${esc(m.event)} · MATCH`,
+        title: `${esc(m.teamA)} <em>${m.status === "已结束" ? `${esc(m.scoreA)} : ${esc(m.scoreB)}` : "VS"}</em> ${esc(m.teamB)}`,
+        sub: `${md(m.date)} ${hm(m.date) || esc(m.time)} · ${esc(m.stage)}`,
+        stats: [
+          [L("状态", "Status"), esc(m.status)],
+          [L("阶段", "Stage"), esc(m.stage) || "—"],
+          [L("赛事", "Event"), esc(m.event)],
+          [L("胜者", "Winner"), m.status === "已结束" ? (Number(m.scoreA) > Number(m.scoreB) ? esc(m.teamA) : esc(m.teamB)) : "—"]
+        ],
+        body: detailSec("对阵", "Match-up", `<div class="detail-pills"><span class="detail-pill">${esc(m.teamA)}</span><span class="detail-pill">${esc(m.teamB)}</span></div>`) +
+          `<p class="detail-note">${L(" Valorant 赛程与比分来自 VLR.GG 的 SSR 页面。", "Valorant schedule and scores from VLR.GG SSR pages.")}</p>`
+      };
+    },
+
+    "kpl-stage"(id) {
+      const s = D.kpl.stages.find((x) => x.id === id);
+      if (!s) return null;
+      const ms = D.kpl.matches.filter((m) => m.stage === s.name);
+      const done = ms.filter((m) => m.status === "已结束").length;
+      const groups = (s.groups || []).map((g) => detailSec(esc(g.name), g.name, detailRows(g.teams.map((t) => ({
+        kind: "kpl-team", id: t.name, who: esc(t.name), sub2: `${t.wins}–${t.losses} · ${L("净胜", "diff")} ${t.net > 0 ? "+" : ""}${t.net}`,
+        what: `#${t.rank}`, val: `${t.points} PTS`
+      }))), L("分组", "GROUP"))).join("");
+      return {
+        kicker: `KPL 2026 · ${esc(s.name)} · STAGE`,
+        title: esc(s.name),
+        sub: `${s.start || "—"} – ${s.end || "—"} · ${ms.length} ${L("场", "matches")}`,
+        stats: [
+          [L("场次", "Matches"), ms.length],
+          [L("已结束", "Finished"), done],
+          [L("未结束", "Upcoming"), ms.length - done],
+          [L("分组", "Groups"), (s.groups || []).length]
+        ],
+        body: groups + detailSec("阶段赛程", "Stage schedule", detailRows(ms.slice(0, 16).map((m) => ({
+          kind: "kpl-match", id: m.id, who: `${esc(m.teamA)} vs ${esc(m.teamB)}`,
+          sub2: `${md(m.date)} ${hm(m.date)} · BO${m.bo}`,
+          what: esc(m.format || ""), val: m.status === "已结束" ? `${m.scoreA} : ${m.scoreB}` : L("未开始", "Upcoming")
+        })))) +
+          `<p class="detail-note">${L("阶段、分组与赛程来自 KPL 官方赛事接口。", "Stage, groups and schedule from the official KPL event API.")}</p>`
+      };
+    },
+
+    "kpl-team"(id) {
+      let team = null, group = null, stage = null;
+      for (const s of D.kpl.stages) {
+        for (const g of s.groups || []) {
+          const hit = g.teams.find((t) => t.name === id);
+          if (hit) { team = hit; group = g; stage = s; break; }
+        }
+        if (team) break;
+      }
+      if (!team) {
+        const matches = D.kpl.matches.filter((m) => m.teamA === id || m.teamB === id);
+        if (!matches.length) return null;
+        const wins = matches.filter((m) => m.status === "已结束" && (m.teamA === id ? m.scoreA > m.scoreB : m.scoreB > m.scoreA)).length;
+        return {
+          kicker: `KPL 2026 · TEAM`,
+          title: esc(id), sub: `${matches.length} ${L("场比赛", "matches")}`,
+          stats: [[L("场次", "Matches"), matches.length], [L("胜", "Wins"), wins], [L("负", "Losses"), matches.length - wins], [L("赛段", "Stage"), "—"]],
+          body: detailRows(matches.slice(0, 12).map((m) => ({
+            kind: "kpl-match", id: m.id, who: `${esc(m.teamA)} vs ${esc(m.teamB)}`, sub2: `${md(m.date)} ${hm(m.date)}`,
+            what: esc(m.stage), val: m.status === "已结束" ? `${m.scoreA} : ${m.scoreB}` : "—"
+          })))
+        };
+      }
+      const ms = D.kpl.matches.filter((m) => m.teamA === id || m.teamB === id);
+      return {
+        kicker: `KPL 2026 · ${esc(group.name)} · TEAM`,
+        title: esc(team.name),
+        sub: `${esc(stage.name)} · ${esc(group.name)} · #${team.rank}`,
+        stats: [
+          [L("胜-负", "Record"), `${team.wins}–${team.losses}`],
+          [L("净胜", "Diff"), `${team.net > 0 ? "+" : ""}${team.net}`],
+          [L("积分", "Points"), team.points],
+          [L("比赛", "Matches"), ms.length]
+        ],
+        body: detailSec("阶段比赛", "Stage matches", detailRows(ms.slice(0, 12).map((m) => ({
+          kind: "kpl-match", id: m.id, who: `${esc(m.teamA)} vs ${esc(m.teamB)}`, sub2: `${md(m.date)} ${hm(m.date)}`,
+          what: esc(m.stage), val: m.status === "已结束" ? `${m.scoreA} : ${m.scoreB}` : L("未开始", "Upcoming")
+        })))) +
+          `<p class="detail-note">${L("战队数据来自 KPL 官方擂台赛积分与赛程快照。", "Team data from the official KPL arena standings and schedule snapshot.")}</p>`
+      };
+    },
+
+    "kpl-match"(id) {
+      const m = D.kpl.matches.find((x) => String(x.id) === String(id));
+      if (!m) return null;
+      return {
+        kicker: `KPL 2026 · ${esc(m.stage)} · MATCH`,
+        title: `${esc(m.teamA)} <em>${m.status === "已结束" ? `${esc(m.scoreA)} : ${esc(m.scoreB)}` : "VS"}</em> ${esc(m.teamB)}`,
+        sub: `${md(m.date)} ${hm(m.date)} · BO${m.bo} · ${esc(m.format || "")}${m.location ? ` · ${esc(m.location)}` : ""}`,
+        stats: [
+          [L("状态", "Status"), esc(m.status)],
+          [L("赛制", "Format"), `BO${m.bo}`],
+          [L("阶段", "Stage"), esc(m.stage)],
+          [L("地点", "Location"), esc(m.location || "—")]
+        ],
+        body: detailSec("对阵", "Match-up", `<div class="detail-pills"><span class="detail-pill">${teamTarget(m.teamA, "kpl-team")}</span><span class="detail-pill">${teamTarget(m.teamB, "kpl-team")}</span></div>`) +
+          `<p class="detail-note">${L("赛程与比分来自 KPL 官方赛事接口；BO 为系列赛制。", "Schedule and scores from the official KPL API; BO is the series format.")}</p>`
+      };
+    },
+
+    "ivl-match"(id) {
+      const m = D.ivl.matches.find((x) => String(x.id) === String(id));
+      if (!m) return null;
+      return {
+        kicker: `IVL 2026 · ${esc(m.stage)} · MATCH`,
+        title: `${esc(m.teamA)} <em>${m.status === "已结束" ? `${esc(m.scoreA)} : ${esc(m.scoreB)}` : "VS"}</em> ${esc(m.teamB)}`,
+        sub: `${md(m.date)} ${hm(m.date)} · ${L("北京时间", "Beijing time")}`,
+        stats: [
+          [L("状态", "Status"), esc(m.status)],
+          [L("阶段", "Stage"), esc(m.stage)],
+          [L("比分", "Score"), m.status === "已结束" ? `${m.scoreA}–${m.scoreB}` : "—"],
+          [L("赛事", "Event"), "IVL Autumn"]
+        ],
+        body: detailSec("队伍", "Teams", `<div class="detail-pills"><span class="detail-pill">${teamTarget(m.teamA, "ivl-team")}</span><span class="detail-pill">${teamTarget(m.teamB, "ivl-team")}</span></div>`) +
+          `<p class="detail-note">${L("赛程与比分来自 IVL 官方赛事接口；比赛详情以官方为准。", "Schedule and scores from the official IVL API; refer to official sources for match details.")}</p>`
+      };
+    },
+
+    "ivl-team"(id) {
+      const ms = D.ivl.matches.filter((m) => m.teamA === id || m.teamB === id);
+      if (!ms.length) return null;
+      const wins = ms.filter((m) => m.status === "已结束" && (m.teamA === id ? m.scoreA > m.scoreB : m.scoreB > m.scoreA)).length;
+      return {
+        kicker: "IVL 2026 · AUTUMN · TEAM",
+        title: esc(id),
+        sub: `${ms.length} ${L("场比赛", "matches")} · ${L("常规赛", "regular season")}`,
+        stats: [
+          [L("胜", "Wins"), wins],
+          [L("负", "Losses"), ms.filter((m) => m.status === "已结束").length - wins],
+          [L("场次", "Matches"), ms.length],
+          [L("赛段", "Stage"), "Autumn"]
+        ],
+        body: detailSec("比赛", "Matches", detailRows(ms.slice(0, 14).map((m) => ({
+          kind: "ivl-match", id: String(m.id), who: `${m.teamA} vs ${m.teamB}`,
+          sub2: `${md(m.date)} ${hm(m.date)} · ${esc(m.stage)}`,
+          what: m.status === "已结束" ? `${m.scoreA} : ${m.scoreB}` : L("未开始", "Upcoming"), val: ""
+        })))) +
+          `<p class="detail-note">${L("队伍页由本站已抓取的 IVL 赛程聚合。", "Team page aggregated from the IVL schedule captured here.")}</p>`
+      };
+    }
+  };
+
+  function buildDetail(kind, id, sub) {
+    const builder = detailBuilders[kind];
+    if (!builder) return null;
+    return builder(id, sub);
+  }
+
+  function markDetail(el, kind, id, sub) {
+    if (!el || id == null) return;
+    el.dataset.detail = kind;
+    el.dataset.id = String(id);
+    if (sub) el.dataset.sub = String(sub);
+    el.classList.add("is-clickable");
+    el.tabIndex = 0;
+    el.setAttribute("role", "button");
+  }
+
+  function decorateDetails() {
+    const f = D.f1;
+    const f1tables = document.querySelectorAll("#view-f1 .table");
+    f1tables[0]?.querySelectorAll("tbody tr").forEach((tr, i) => {
+      const d = f.drivers[i];
+      if (d) markDetail(tr, "f1-driver", d.rank);
+    });
+    f1tables[1]?.querySelectorAll("tbody tr").forEach((tr, i) => {
+      const c = f.constructors[i];
+      if (c) markDetail(tr, "f1-constructor", c.rank);
+    });
+    document.querySelectorAll("#view-f1 .race-card").forEach((el) => {
+      const n = Number((el.querySelector(".race-round")?.textContent || "").replace(/\D/g, ""));
+      if (n) markDetail(el, "f1-race", n);
+    });
+    document.querySelectorAll("#view-f1 .podium-row").forEach((el) => {
+      if (f.last?.round) markDetail(el, "f1-race", f.last.round);
+    });
+    const f1side = document.querySelectorAll("#view-f1 .hero-side .leader-list");
+    f1side[0]?.querySelectorAll(".leader-row").forEach((el, i) => f.drivers[i] && markDetail(el, "f1-driver", f.drivers[i].rank));
+    f1side[1]?.querySelectorAll(".leader-row").forEach((el, i) => f.constructors[i] && markDetail(el, "f1-constructor", f.constructors[i].rank));
+
+    document.querySelectorAll("#view-fe .weekend-card").forEach((el) => {
+      const n = Number((el.querySelector(".weekend-round .r")?.textContent || "").replace(/\D/g, ""));
+      const race = D.fe.races.find((r) => r.round === n);
+      if (race) markDetail(el, "fe-weekend", race.weekend);
+    });
+    document.querySelectorAll("#view-fe .hero-side .leader-row").forEach((el) => {
+      const n = Number((el.querySelector(".leader-rank")?.textContent || "").replace(/\D/g, ""));
+      const race = D.fe.races.find((r) => r.round === n);
+      if (race) markDetail(el, "fe-weekend", race.weekend);
+    });
+
+    const w = D.lol.worlds;
+    document.querySelectorAll("#worlds-standings .table tbody tr").forEach((tr, i) => {
+      if (w.teams[i]) markDetail(tr, "worlds-team", w.teams[i].name);
+    });
+    document.querySelectorAll("#view-lol .match-list .match-item").forEach((el, i) => {
+      if (w.matches[i]) markDetail(el, "worlds-match", String(i));
+    });
+    document.querySelectorAll("#view-lol .two-col.even .panel").forEach((panel, gi) => {
+      const group = D.lol.lpl.groups[gi];
+      if (!group) return;
+      panel.querySelectorAll("tbody tr").forEach((tr, i) => {
+        if (group.teams[i]) markDetail(tr, "lpl-team", group.teams[i].name, group.name);
+      });
+    });
+    document.querySelectorAll("#view-lol .hero-side .leader-row").forEach((el, i) => {
+      if (w.teams[i]) markDetail(el, "worlds-team", w.teams[i].name);
+    });
+
+    const mainRegions = ["China", "Asia-Pacific", "Europe", "North America", "Korea"]
+      .map((n) => D.vct.regions.find((r) => r.name === n)).filter(Boolean);
+    document.querySelectorAll("#view-vct .region-grid .region-card").forEach((card, ri) => {
+      const region = mainRegions[ri];
+      if (!region) return;
+      markDetail(card, "vct-region", region.name);
+      card.querySelectorAll(".rank-row").forEach((row, ti) => {
+        if (region.teams[ti]) markDetail(row, "vct-team", region.teams[ti].name, region.name);
+      });
+    });
+    document.querySelectorAll("#view-vct .two-col.even .panel").forEach((panel, pi) => {
+      const list = pi === 0 ? D.vct.upcoming : D.vct.results;
+      const prefix = pi === 0 ? "u" : "r";
+      panel.querySelectorAll(".match-item").forEach((el, i) => {
+        if (list[i]) markDetail(el, "vct-match", prefix + i);
+      });
+    });
+    document.querySelectorAll("#view-vct .hero-side .leader-row").forEach((el, i) => {
+      if (D.vct.results[i]) markDetail(el, "vct-match", "r" + i);
+    });
+
+    const k = D.kpl;
+    document.querySelectorAll("#view-kpl .stage-strip .stage-chip").forEach((el, i) => {
+      if (k.stages[i]) markDetail(el, "kpl-stage", k.stages[i].id);
+    });
+    const stageGroups = k.stages.find((s) => s.id === "lts")?.groups || [];
+    document.querySelectorAll("#view-kpl .two-col.even .panel").forEach((panel, gi) => {
+      const group = stageGroups[gi];
+      if (!group) return;
+      panel.querySelectorAll("tbody tr").forEach((tr, i) => {
+        if (group.teams[i]) markDetail(tr, "kpl-team", group.teams[i].name);
+      });
+    });
+    document.querySelectorAll("#kpl-match-list .match-item").forEach((el, i) => {
+      if (k.matches[i]) markDetail(el, "kpl-match", k.matches[i].id);
+    });
+    document.querySelectorAll("#view-kpl .hero-side .leader-row").forEach((el, i) => {
+      const t = stageGroups[0]?.teams[i];
+      if (t) markDetail(el, "kpl-team", t.name);
+    });
+
+    document.querySelectorAll("#ivl-match-list .match-item").forEach((el, i) => {
+      if (D.ivl.matches[i]) markDetail(el, "ivl-match", D.ivl.matches[i].id);
+    });
+    document.querySelectorAll("#ivl-match-list .match-team .name[data-team]").forEach((el) => {
+      markDetail(el, "ivl-team", el.dataset.team);
+    });
+    document.querySelectorAll("#view-ivl .hero-side .leader-row").forEach((el, i) => {
+      const upcoming = D.ivl.matches.filter((m) => m.status !== "已结束")[i];
+      if (upcoming) markDetail(el, "ivl-match", upcoming.id);
+    });
+  }
+
+  function renderDetail() {
+    const info = state.detail && buildDetail(state.detail.kind, state.detail.id, state.detail.sub);
+    if (!info) return false;
+    $("#detail-body").innerHTML = detailHead(info.kicker, info.title, info.sub) + detailStats(info.stats) + info.body;
+    if (state.lang === "en") localize($("#detail-body"));
+    return true;
+  }
+
+  function openDetail(kind, id, sub) {
+    if (!kind || id == null) return;
+    state.detail = { kind, id: String(id), sub: sub || "" };
+    if (!renderDetail()) { state.detail = null; return; }
+    state.lastFocus = document.activeElement;
+    const layer = $("#detail-layer");
+    layer.hidden = false;
+    document.body.classList.add("detail-open");
+    requestAnimationFrame(() => $("#detail-close")?.focus());
+  }
+
+  function closeDetail() {
+    const layer = $("#detail-layer");
+    if (!layer || layer.hidden) return;
+    layer.hidden = true;
+    state.detail = null;
+    document.body.classList.remove("detail-open");
+    if (state.lastFocus && typeof state.lastFocus.focus === "function") state.lastFocus.focus();
+    state.lastFocus = null;
+  }
+
+  function bindDetail() {
+    $("#detail-close")?.addEventListener("click", closeDetail);
+    document.querySelectorAll("[data-detail-close]").forEach((el) => el.addEventListener("click", closeDetail));
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") { closeDetail(); return; }
+      if (e.key !== "Enter" && e.key !== " ") return;
+      const el = e.target.closest("[data-detail]");
+      if (el) {
+        e.preventDefault();
+        openDetail(el.dataset.detail, el.dataset.id, el.dataset.sub);
+      }
+    });
   }
 
   /* ---------------------------------------------------------- shell */
@@ -1143,6 +1720,12 @@
     }, 1000);
 
     document.addEventListener("click", (e) => {
+      const hit = e.target.closest("[data-detail]");
+      if (!hit) return;
+      e.preventDefault();
+      openDetail(hit.dataset.detail, hit.dataset.id, hit.dataset.sub);
+    });
+    document.addEventListener("click", (e) => {
       const btn = e.target.closest("[data-filter]");
       if (!btn) return;
       const group = btn.dataset.group;
@@ -1161,6 +1744,7 @@
   renderAll();
   initShell();
   setupLang();
+  bindDetail();
   initMusic();
   initMotion();
   tickCountdowns();

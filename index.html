@@ -100,6 +100,13 @@
   </footer>
 
   <noscript><p class="noscript">请开启 JavaScript 以查看 GRIDLINE 看板。</p></noscript>
+  <div class="detail-layer" id="detail-layer" hidden>
+    <div class="detail-backdrop" data-detail-close></div>
+    <article class="detail-card" role="dialog" aria-modal="true" aria-labelledby="detail-title">
+      <button type="button" class="detail-close" id="detail-close" aria-label="关闭详情">×</button>
+      <div id="detail-body"></div>
+    </article>
+  </div>
   <button type="button" class="music-toggle" id="music-toggle" aria-controls="music-panel" aria-expanded="false">
     <span class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
     <span>电台</span>
@@ -142,7 +149,7 @@
       <a href="https://y.qq.com/" target="_blank" rel="noopener noreferrer">QQ音乐</a>
       <a href="https://music.163.com/" target="_blank" rel="noopener noreferrer">网易云</a>
     </div>
-    <p class="music-note">站内登录第三方音乐账号需要平台 OAuth 授权，当前提供公开电台；点服务名可在官方 App 登录。</p>
+    <p class="music-note">QQ音乐 / 网易云目前不提供面向第三方网页的 OAuth 登录；当前提供公开电台，点服务名可在各自官方 App 登录。</p>
   </aside>
   <script defer src="data.js"></script>
   <script defer src="assets/app.js"></script>
