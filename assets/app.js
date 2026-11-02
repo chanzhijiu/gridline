@@ -546,19 +546,73 @@
     }
     document.body.classList.add("intro-open");
     let done = false;
+    let attempted = false;
+    const voiceBtn = $("#intro-voice");
+
+    const pickVoice = () => {
+      const voices = window.speechSynthesis ? speechSynthesis.getVoices() : [];
+      const female = ["xiaoxiao", "huihui", "yaoyao", "tingting", "mei", "female", "女"];
+      return voices.find((v) => /^zh/i.test(v.lang) && female.some((n) => v.name.toLowerCase().includes(n)))
+        || voices.find((v) => /^zh/i.test(v.lang))
+        || voices.find((v) => female.some((n) => v.name.toLowerCase().includes(n)))
+        || null;
+    };
+
+    const speakWelcome = (force = false) => {
+      if (done || !window.speechSynthesis) return;
+      if (attempted && !force) return;
+      attempted = true;
+      const u = new SpeechSynthesisUtterance("欢迎来到，GRIDLINE");
+      u.lang = "zh-CN";
+      u.rate = 0.82;
+      u.pitch = 0.72;
+      u.volume = 0.9;
+      const voice = pickVoice();
+      if (voice) u.voice = voice;
+      u.onstart = () => el.classList.add("is-speaking");
+      u.onend = () => el.classList.remove("is-speaking");
+      u.onerror = () => el.classList.remove("is-speaking");
+      try {
+        speechSynthesis.cancel();
+        speechSynthesis.speak(u);
+      } catch (_) {}
+    };
+
     const finish = () => {
       if (done) return;
       done = true;
+      try { speechSynthesis.cancel(); } catch (_) {}
+      el.classList.remove("is-speaking");
       el.classList.add("is-done");
       document.body.classList.remove("intro-open");
       try { sessionStorage.setItem("gridline-intro", "1"); } catch (_) {}
       setTimeout(() => el.remove(), 800);
     };
     $("#intro-skip").addEventListener("click", finish);
+    if (voiceBtn) {
+      voiceBtn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        speakWelcome(true);
+      });
+    }
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape") finish();
     });
-    setTimeout(finish, 3000);
+    el.addEventListener("pointerdown", () => {
+      if (done || !window.speechSynthesis) return;
+      if (!speechSynthesis.speaking) speakWelcome(true);
+    }, { once: true });
+    if (window.speechSynthesis) {
+      if (speechSynthesis.getVoices().length) setTimeout(() => speakWelcome(), 320);
+      else {
+        speechSynthesis.onvoiceschanged = () => {
+          speechSynthesis.onvoiceschanged = null;
+          if (!done) setTimeout(() => speakWelcome(), 120);
+        };
+        setTimeout(() => speakWelcome(), 720);
+      }
+    }
+    setTimeout(finish, 3200);
   }
 
   function initMotion() {
