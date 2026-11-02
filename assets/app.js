@@ -13,6 +13,50 @@
 
   const CST = "Asia/Shanghai";
   const VIEWS = ["f1", "fe", "lol", "vct", "kpl", "ivl"];
+  const MEDIA = {
+    f1: {
+      items: [
+        { type: "image", src: "assets/media/f1-1.jpg", href: "https://www.bilibili.com/video/BV1ECxa6WEdk", titleZh: "安东内利加冕时刻", titleEn: "Antonelli's crowning moment", metaZh: "墨西哥城 · 2026", metaEn: "Mexico City · 2026", credit: "F1世界锦标赛" },
+        { type: "image", src: "assets/media/f1-2.jpg", href: "https://www.bilibili.com/video/BV11bxn6PEt9", titleZh: "汉密尔顿法拉利首杆", titleEn: "Hamilton's first Ferrari pole", metaZh: "墨西哥城 · 排位赛", metaEn: "Mexico City · Qualifying", credit: "F1世界锦标赛" },
+        { type: "video", bvid: "BV1vuxa62ELx", poster: "assets/media/f1-3.jpg", href: "https://www.bilibili.com/video/BV1vuxa62ELx", titleZh: "2026 墨西哥城大奖赛 · 正赛集锦", titleEn: "2026 Mexico City GP · race highlights", metaZh: "F1 世界锦标赛 · 官方", metaEn: "F1 World Championship · official", credit: "F1世界锦标赛" }
+      ]
+    },
+    fe: {
+      items: [
+        { type: "image", src: "assets/media/fe-1.jpg", href: "https://www.bilibili.com/video/BV1k1x462EoQ", titleZh: "终点线前 0.036 秒", titleEn: "0.036s at the line", metaZh: "墨西哥城 · 冲刺瞬间", metaEn: "Mexico City · photo finish", credit: "FE电动方程式" },
+        { type: "image", src: "assets/media/fe-2.jpg", href: "https://www.bilibili.com/video/BV1gFLG6dE7D", titleZh: "摩纳哥站杆位单圈", titleEn: "Monaco pole lap", metaZh: "摩纳哥 · 2026", metaEn: "Monaco · 2026", credit: "FE电动方程式" },
+        { type: "video", bvid: "BV1DGMu6eEE6", poster: "assets/media/fe-3.jpg", href: "https://www.bilibili.com/video/BV1DGMu6eEE6", titleZh: "FE 上海站 · 次回合正赛", titleEn: "FE Shanghai · Round 13 race", metaZh: "FE 电动方程式 · 官方回放", metaEn: "Formula E · official replay", credit: "FE电动方程式" }
+      ]
+    },
+    lol: {
+      items: [
+        { type: "image", src: "assets/media/lol-1.jpg", href: "https://www.bilibili.com/video/BV1C8xn6YEDA", titleZh: "HLE vs BLG · 瑞士轮", titleEn: "HLE vs BLG · Swiss Stage", metaZh: "S16 全球总决赛", metaEn: "S16 World Championship", credit: "哔哩哔哩英雄联盟赛事" },
+        { type: "image", src: "assets/media/lol-2.jpg", href: "https://www.bilibili.com/video/BV1DRHU6LELy", titleZh: "2026 全球总决赛主题曲", titleEn: "2026 Worlds anthem", metaZh: "KNOW MY NAME · 以我之名", metaEn: "KNOW MY NAME · 以我之名", credit: "英雄联盟" },
+        { type: "video", bvid: "BV15sn86cEEM", poster: "assets/media/lol-3.jpg", href: "https://www.bilibili.com/video/BV15sn86cEEM", titleZh: "全球总决赛瑞士轮第一日宣传片", titleEn: "Worlds Swiss Stage Day 1 trailer", metaZh: "英雄联盟赛事 · 官方", metaEn: "LoL Esports · official", credit: "英雄联盟赛事" }
+      ]
+    },
+    vct: {
+      items: [
+        { type: "image", src: "assets/media/vct-1.jpg", href: "https://www.bilibili.com/video/BV1PvnG68EF1", titleZh: "上海全球冠军赛 · 开幕式", titleEn: "Shanghai Champions · opening", metaZh: "无畏契约 · 2026", metaEn: "VALORANT · 2026", credit: "无畏契约电竞" },
+        { type: "image", src: "assets/media/vct-2.jpg", href: "https://www.bilibili.com/video/BV1rtew6hEnF", titleZh: "2026 全球冠军赛主题曲", titleEn: "2026 Champions anthem", metaZh: "炽日将烬 · 官方", metaEn: "Official anthem", credit: "无畏契约" },
+        { type: "video", bvid: "BV1BAng6CEwf", poster: "assets/media/vct-3.jpg", href: "https://www.bilibili.com/video/BV1BAng6CEwf", titleZh: "上海全球冠军赛 · 总决赛", titleEn: "Shanghai Champions · Grand Final", metaZh: "LOUD vs VIT · 官方回放", metaEn: "LOUD vs VIT · official replay", credit: "无畏契约赛事" }
+      ]
+    },
+    kpl: {
+      items: [
+        { type: "image", src: "assets/media/kpl-1.jpg", href: "https://www.bilibili.com/video/BV1WW4w6UESu", titleZh: "北京JDG vs 重庆狼队", titleEn: "Beijing JDG vs Chongqing Wolves", metaZh: "年度总决赛 · 11.02", metaEn: "Grand Finals · Nov 2", credit: "哔哩哔哩王者荣耀赛事" },
+        { type: "image", src: "assets/media/kpl-2.jpg", href: "https://www.bilibili.com/video/BV1zaaH6CEpc", titleZh: "年度总决赛主题曲《我们在场》", titleEn: "Grand Finals anthem", metaZh: "KPL 2026 · 官方", metaEn: "KPL 2026 · official", credit: "哔哩哔哩王者荣耀赛事" },
+        { type: "video", bvid: "BV13xx46hEU4", poster: "assets/media/kpl-3.jpg", href: "https://www.bilibili.com/video/BV13xx46hEU4", titleZh: "KSG vs 杭州LGD.NBW", titleEn: "KSG vs Hangzhou LGD.NBW", metaZh: "年度总决赛 · 11.01 · 官方回放", metaEn: "Grand Finals · Nov 1 · official replay", credit: "哔哩哔哩王者荣耀赛事" }
+      ]
+    },
+    ivl: {
+      items: [
+        { type: "image", src: "assets/media/ivl-1.jpg", href: "https://www.bilibili.com/video/BV13xx46hEqZ", titleZh: "成都GG vs 成都Wolves", titleEn: "Chengdu GG vs Chengdu Wolves", metaZh: "IVL 秋季赛 · Week 5", metaEn: "IVL Autumn · Week 5", credit: "第五人格赛事" },
+        { type: "image", src: "assets/media/ivl-2.jpg", href: "https://www.bilibili.com/video/BV1sdxW6VETi", titleZh: "北京WBG vs ASC", titleEn: "Beijing WBG vs ASC", metaZh: "IVL 秋季赛 · Week 5", metaEn: "IVL Autumn · Week 5", credit: "第五人格赛事" },
+        { type: "video", bvid: "BV17axx6qENo", poster: "assets/media/ivl-3.jpg", href: "https://www.bilibili.com/video/BV17axx6qENo", titleZh: "GR vs MRC · Week 5 Day 3", titleEn: "GR vs MRC · Week 5 Day 3", metaZh: "IVL 秋季赛 · 官方回放", metaEn: "IVL Autumn · official replay", credit: "第五人格赛事" }
+      ]
+    }
+  };
   const state = { kpl: "all", ivl: "all", lang: "zh", detail: null, lastFocus: null };
   try {
     const saved = localStorage.getItem("gridline-lang");
@@ -326,6 +370,70 @@
     renderKPL();
     renderIVL();
     decorateDetails();
+    mountMedia();
+  }
+
+  function mediaSection(key) {
+    const media = MEDIA[key];
+    if (!media) return "";
+    const tt = (zh, en) => (state.lang === "en" ? en : zh);
+    const cards = media.items.map((it) => {
+      const title = state.lang === "en" ? it.titleEn : it.titleZh;
+      const meta = state.lang === "en" ? it.metaEn : it.metaZh;
+      if (it.type === "video") {
+        return `<article class="media-card is-video">
+          <div class="media-thumb" data-video="${esc(it.bvid)}" data-title="${esc(title)}" role="button" tabindex="0" aria-label="${tt("播放视频", "Play video")}：${esc(title)}">
+            <img src="${esc(it.poster)}" alt="${esc(title)}" loading="lazy" decoding="async">
+            <span class="media-shade" aria-hidden="true"></span>
+            <span class="media-badge">VIDEO</span>
+            <span class="media-play" aria-hidden="true">▶</span>
+          </div>
+          <div class="media-copy"><h3>${esc(title)}</h3><p>${esc(meta)}</p><span class="media-credit">${esc(it.credit)} · Bilibili</span></div>
+        </article>`;
+      }
+      return `<article class="media-card">
+        <a class="media-thumb" href="${esc(it.src)}" target="_blank" rel="noopener">
+          <img src="${esc(it.src)}" alt="${esc(title)}" loading="lazy" decoding="async">
+          <span class="media-shade" aria-hidden="true"></span>
+          <span class="media-badge">PHOTO</span>
+          <span class="media-zoom" aria-hidden="true">↗</span>
+        </a>
+        <div class="media-copy"><h3>${esc(title)}</h3><p>${esc(meta)}</p><a class="media-credit" href="${esc(it.href)}" target="_blank" rel="noopener">${esc(it.credit)} ↗</a></div>
+      </article>`;
+    }).join("");
+    return `<section class="section media-section" id="${key}-media">
+      <div class="section-head"><div><span class="section-kicker">${tt("影像", "VISUAL")}</span><h2>${tt("现场与影像", "Media & moments")}</h2></div><p class="media-summary">${tt("官方赛事影像，点击照片查看大图，视频按需加载。", "Official event media. Open photos full size; videos load on demand.")}</p></div>
+      <div class="media-grid">${cards}</div>
+    </section>`;
+  }
+
+  function mountMedia() {
+    VIEWS.forEach((key) => {
+      const view = document.getElementById("view-" + key);
+      if (!view) return;
+      view.querySelectorAll(".media-section").forEach((el) => el.remove());
+      view.insertAdjacentHTML("beforeend", mediaSection(key));
+    });
+  }
+
+  function bindMedia() {
+    document.addEventListener("click", (event) => {
+      const thumb = event.target.closest("[data-video]");
+      if (!thumb) return;
+      const bvid = thumb.getAttribute("data-video");
+      if (!bvid) return;
+      const title = thumb.getAttribute("data-title") || "GRIDLINE";
+      thumb.removeAttribute("data-video");
+      thumb.classList.add("is-playing");
+      thumb.innerHTML = `<iframe src="https://player.bilibili.com/player.html?bvid=${encodeURIComponent(bvid)}&page=1&high_quality=1&danmaku=0" title="${esc(title)}" allowfullscreen loading="lazy"></iframe>`;
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      const thumb = event.target.closest("[data-video]");
+      if (!thumb) return;
+      event.preventDefault();
+      thumb.click();
+    });
   }
 
   let musicUpdate = null;
@@ -425,6 +533,32 @@
       }
     });
     select(0);
+  }
+
+  function initIntro() {
+    const el = $("#intro");
+    if (!el) return;
+    let seen = false;
+    try { seen = sessionStorage.getItem("gridline-intro") === "1"; } catch (_) {}
+    if (seen || matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      el.remove();
+      return;
+    }
+    document.body.classList.add("intro-open");
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      el.classList.add("is-done");
+      document.body.classList.remove("intro-open");
+      try { sessionStorage.setItem("gridline-intro", "1"); } catch (_) {}
+      setTimeout(() => el.remove(), 800);
+    };
+    $("#intro-skip").addEventListener("click", finish);
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") finish();
+    });
+    setTimeout(finish, 3000);
   }
 
   function initMotion() {
@@ -1745,7 +1879,9 @@
   initShell();
   setupLang();
   bindDetail();
+  bindMedia();
   initMusic();
   initMotion();
+  initIntro();
   tickCountdowns();
 })();
