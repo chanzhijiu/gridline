@@ -483,12 +483,14 @@ tr:nth-child(3) .pos span { color: #0a0b0f; background: var(--bronze); }
     padding-right: max(14px, env(safe-area-inset-right));
     padding-bottom: calc(56px + env(safe-area-inset-bottom));
   }
-  .hero { border-radius: 20px; }
-  .hero-title { font-size: clamp(38px, 10vw, 54px); letter-spacing: -.035em; }
-  .hero-main { padding: 22px 16px; min-height: 0; }
-  .hero-side { padding: 18px 16px; }
-  .hero-actions { gap: 8px; }
-  .stat-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hero { display: block; border-radius: 20px; }
+  .hero-title { font-size: clamp(38px, 10vw, 54px); letter-spacing: -.035em; overflow-wrap: break-word; }
+  .hero-main { width: 100%; padding: 22px 16px; min-height: 0; min-width: 0; }
+  .hero-side { width: 100%; padding: 18px 16px; border-left: 0; border-top: 1px solid var(--line); min-width: 0; }
+  .hero-actions { gap: 8px; align-items: flex-start; }
+  .hero-actions .countdown { flex: 1 1 100%; min-width: 0; }
+  .hero-sub, .hero-sub > * { min-width: 0; }
+  .stat-row { grid-template-columns: repeat(2, minmax(0, 1fr)); min-width: 0; }
   .stat-card { padding: 14px 14px 13px; }
   .weekend-grid, .region-grid { grid-template-columns: 1fr; }
   .countdown { gap: 5px; }
@@ -507,6 +509,7 @@ tr:nth-child(3) .pos span { color: #0a0b0f; background: var(--bronze); }
   .match-tag { display: none; }
   .match-meta { padding-left: 0; flex-wrap: wrap; gap: 4px 8px; }
   .match-meta .status { margin-left: 0; }
+  #view-f1 .table th:last-child, #view-f1 .table td:last-child { display: none; }
   .table th, .table td { padding: 8px 7px; }
   .table { font-size: 11.5px; }
   .table .pos { width: 26px; }
