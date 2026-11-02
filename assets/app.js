@@ -616,7 +616,17 @@
   }
 
   /* ---------------------------------------------------------- shell */
-  function go(view, push = true) {
+  function parseHash(hash = location.hash) {
+    const raw = String(hash || "").replace(/^#/, "").replace(/^\/+/, "");
+    if (!raw) return { view: "f1", anchor: null };
+    if (VIEWS.includes(raw)) return { view: raw, anchor: null };
+    if (raw.startsWith("worlds")) return { view: "lol", anchor: raw };
+    const prefix = raw.split("-")[0];
+    if (VIEWS.includes(prefix)) return { view: prefix, anchor: raw };
+    return { view: "f1", anchor: null };
+  }
+
+  function go(view, push = true, anchor = null) {
     if (!VIEWS.includes(view)) view = "f1";
     document.body.dataset.view = view;
     VIEWS.forEach((v) => {
@@ -629,8 +639,14 @@
       if (on) b.setAttribute("aria-current", "page");
       else b.removeAttribute("aria-current");
     });
-    if (push && location.hash !== "#" + view) history.replaceState(null, "", "#" + view);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    const nextHash = "#" + (anchor || view);
+    if (push && location.hash !== nextHash) history.replaceState(null, "", nextHash);
+    const target = anchor ? document.getElementById(anchor) : null;
+    if (target) {
+      requestAnimationFrame(() => target.scrollIntoView({ behavior: "smooth", block: "start" }));
+    } else {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   }
 
   function initShell() {
@@ -647,8 +663,21 @@
     $("#clock").textContent = new Intl.DateTimeFormat("zh-CN", { timeZone: CST, hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(new Date());
 
     document.querySelectorAll(".nav-item").forEach((b) => b.addEventListener("click", () => go(b.dataset.view)));
-    window.addEventListener("hashchange", () => go(location.hash.replace("#", ""), false));
-    go(location.hash.replace("#", "") || "f1", false);
+    document.querySelectorAll('a[href^="#"]').forEach((a) => a.addEventListener("click", (e) => {
+      const raw = a.getAttribute("href").slice(1);
+      if (!raw) return;
+      e.preventDefault();
+      const route = parseHash("#" + raw);
+      const nextHash = "#" + (route.anchor || route.view);
+      if (location.hash !== nextHash) history.replaceState(null, "", nextHash);
+      go(route.view, false, route.anchor);
+    }));
+    window.addEventListener("hashchange", () => {
+      const route = parseHash(location.hash);
+      go(route.view, false, route.anchor);
+    });
+    const initial = parseHash(location.hash);
+    go(initial.view, false, initial.anchor);
 
     setInterval(() => {
       $("#clock").textContent = new Intl.DateTimeFormat("zh-CN", { timeZone: CST, hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(new Date());
