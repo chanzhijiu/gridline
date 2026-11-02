@@ -1,0 +1,125 @@
+# GRIDLINE — 赛车 × 电竞一站式看板
+
+一个纯静态单页看板，把 **Formula 1、Formula E、英雄联盟（S16 全球总决赛 + LPL）、VCT、KPL、IVL** 放进同一张时间表。深色仪表盘风格，中文界面，按系列切换主题色。
+
+![views](https://img.shields.io/badge/views-F1%20%C2%B7%20FE%20%C2%B7%20LoL%20%C2%B7%20VCT%20%C2%B7%20KPL%20%C2%B7%20IVL-ff3b30)
+
+## 快速打开
+
+直接双击 `index.html` 即可。数据已内嵌在 `data.js` 里，不需要本地服务器；核心内容离线可看，队徽与在线字体在联网时显示更完整（加载失败会自动回退）。
+
+如果浏览器对 `file://` 有限制，可以在本目录起一个静态服务器：
+
+```bash
+python -m http.server 8080
+# 打开 http://127.0.0.1:8080/
+```
+
+### 手机 / 局域网访问
+
+当前已在 `8765` 端口起了静态服务器。手机和电脑连同一个 Wi-Fi 后，手机浏览器打开：
+
+```text
+http://192.168.0.116:8765/
+```
+
+电脑本机访问 `http://127.0.0.1:8765/`。如果手机打不开，依次检查：是否同一 Wi-Fi、Windows 防火墙是否放行 Python、电脑 IP 是否变化（`ipconfig` 查看 WLAN 的 IPv4 地址）。
+
+重新启动服务器的命令：
+
+```bash
+cd E:\dsh-workspace\racehub
+python -m http.server 8765 --bind 0.0.0.0
+```
+
+手机浏览器可“添加到主屏幕”，获得接近 App 的全屏入口。
+
+### 公网访问
+
+这是纯静态站，不需要后端。推荐用 GitHub Pages：仓库已带 GitHub Actions 工作流，推到 `main` 会自动构建并发布；之后每天北京时间 09:17 自动刷新一次数据快照。
+
+首次部署：
+
+1. 在 GitHub 新建仓库（例如 `gridline`），不要勾选 “Add a README”；
+2. 把本目录推到仓库的 `main` 分支；
+3. 打开仓库 **Settings → Pages → Build and deployment → Source**，选择 **GitHub Actions**；
+4. 等 Actions 里的 “Build and deploy GRIDLINE” 跑完，公开地址是 `https://<用户名>.github.io/gridline/`。
+
+也可以手动触发：**Actions → Build and deploy GRIDLINE → Run workflow**。
+
+其他选择：把整个目录拖到 [Netlify Drop](https://app.netlify.com/drop)，或在 Vercel / Cloudflare Pages 里把构建命令留空、输出目录填根目录。
+
+公网地址生成后，手机和电脑都能直接访问；数据由 Action 每日更新，不必本地重新部署。
+
+## 页面内容
+
+| 板块 | 内容 |
+| --- | --- |
+| **F1** | 下一站倒计时、车手 / 车队积分榜、上一站领奖台与最快圈、2026 全 23 站赛历（含冲刺周末） |
+| **Formula E** | 第 13 赛季 21 站赛历，按比赛周末分组，开幕站倒计时 |
+| **英雄联盟** | S16 全球总决赛瑞士轮 16 队积分与本周赛程；LPL 第三赛段登峰组 / 涅槃组积分 |
+| **VCT** | VLR.GG 世界排名 5 个主赛区（中国 / 亚太 / 欧洲 / 北美 / 韩国）+ 其他赛区折叠；近期赛程与赛果 |
+| **KPL** | 2026 年度总决赛赛段进程、擂台赛大师组 / 精英组积分、全部 54 场赛程赛果（可筛选） |
+| **IVL** | 2026 秋季赛全部 90 场赛程赛果（可筛选），下一场倒计时 |
+
+所有时间统一显示为 **北京时间（UTC+8）**。
+
+## 数据刷新
+
+数据快照由 `build_data.py` 生成：
+
+```bash
+python build_data.py
+```
+
+脚本会重新抓取公开数据源，输出：
+
+- `data.json` — 结构化快照，便于二次开发
+- `data.js` — `window.RACEHUB_DATA = {...};`，供 `file://` 直接加载
+
+依赖：Python 3.10+、`lxml`。除 KPL 官方接口为 POST 且按官方要求带 `Origin/Referer` 外，其余数据源均为公开 GET；不需要登录或 API key。
+
+### 数据源
+
+| 数据 | 来源 | 说明 |
+| --- | --- | --- |
+| F1 | [Jolpica / Ergast API](https://api.jolpi.ca/ergast/f1/current/) | 赛历、车手 / 车队积分、上一站结果 |
+| Formula E | [FIA Formula E 官方日历](https://www.fiaformulae.com/en/calendar) | 页面内嵌 `application/ld+json` 日历 |
+| 英雄联盟 | [ScoreGG](https://www.scoregg.com/) | S16 全球总决赛瑞士轮、LPL 第三赛段积分 |
+| VCT | [VLR.GG](https://www.vlr.gg/) | 世界排名、近期赛程与赛果 |
+| KPL | [KPL 官方赛事接口](https://kpl.qq.com/) | 2026 年度总决赛赛程与擂台赛积分 |
+| IVL | [IVL 官方赛事接口](https://ivl.163.com/) | 2026 秋季赛赛程赛果 |
+
+## 目录结构
+
+```
+racehub/
+├─ index.html          # 页面骨架、导航、页脚
+├─ manifest.webmanifest # PWA 清单（手机添加到主屏幕）
+├─ .github/workflows/pages.yml  # GitHub Pages 构建 + 每日数据刷新
+├─ assets/
+│  ├─ styles.css       # 深色仪表盘主题、响应式布局
+│  ├─ app.js           # 渲染、hash 路由、倒计时、赛程筛选
+│  ├─ icon.svg         # 矢量图标
+│  └─ icon-*.png       # 180 / 192 / 512 图标
+├─ build_data.py       # 抓取 + 归一化，生成 data.json / data.js
+├─ requirements.txt    # 构建依赖（lxml）
+├─ data.json           # 数据快照
+└─ data.js             # 同上，挂到 window.RACEHUB_DATA
+```
+
+## 说明与边界
+
+- 本项目是**非官方粉丝项目**，赛程、积分与排名最终以各赛事官方公告为准。
+- 页面读取的是**生成时刻的快照**；F1 等数据会随后续比赛变化，重新运行 `build_data.py` 即可更新。
+- 部分数据源没有稳定公开 API，脚本按页面结构解析；若源站改版，可能需要同步调整 `build_data.py` 中的选择器。
+- LPL 展示的是第三赛段常规赛最终积分；Worlds 展示的是当前瑞士轮阶段数据。
+- VCT 排名来自 VLR.GG 的世界排名页，覆盖 13 个赛区，页面主区域展示 5 个主要赛区。
+- KPL 淘汰赛阶段部分对阵在快照时仍为“待定”，页面会原样显示。
+- 已通过 HTML/CSS 静态校验、`node --check` 语法检查和基于 DOM shim 的六视图渲染检查；未做像素级截图验收。
+
+## 自定义
+
+- 主题色：`assets/styles.css` 顶部 `body[data-view="f1"]` 等规则里的 `--accent`。
+- 新增赛事：在 `index.html` 加导航按钮与 `<section class="view" id="view-xxx">`，在 `app.js` 里加 `renderXXX()` 并在底部调用，再在 `build_data.py` 里补数据。
+- 想换视觉风格：主要改 `--bg`、`--panel`、`--line`、`--accent` 与字体变量。
