@@ -55,6 +55,10 @@
     </nav>
 
     <div class="topmeta">
+      <div class="lang-switch" role="group" aria-label="语言 / Language">
+        <button type="button" data-lang="zh" class="is-active" aria-pressed="true">中</button>
+        <button type="button" data-lang="en" aria-pressed="false">EN</button>
+      </div>
       <span class="clock" id="clock">--:--:--</span>
       <span class="tz">CST · UTC+8</span>
     </div>
@@ -96,6 +100,50 @@
   </footer>
 
   <noscript><p class="noscript">请开启 JavaScript 以查看 GRIDLINE 看板。</p></noscript>
+  <button type="button" class="music-toggle" id="music-toggle" aria-controls="music-panel" aria-expanded="false">
+    <span class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+    <span>电台</span>
+  </button>
+  <aside class="music-panel" id="music-panel" hidden aria-label="GRIDLINE Radio">
+    <div class="music-head">
+      <div>
+        <strong>GRIDLINE RADIO</strong>
+        <small>公开电台 · 无需登录</small>
+      </div>
+      <button type="button" class="music-close" id="music-close" aria-label="关闭电台">×</button>
+    </div>
+    <div class="radio-now">
+      <span class="radio-mark" aria-hidden="true"></span>
+      <div>
+        <b id="radio-status" aria-live="polite">选择电台</b>
+        <small id="radio-sub">所有访客都可以直接收听</small>
+      </div>
+    </div>
+    <div class="radio-stations" role="list">
+      <button type="button" class="radio-station is-active" data-station="0" role="listitem">
+        <span><b>Radio Paradise</b><small>Main Mix · 无广告</small></span><i aria-hidden="true"></i>
+      </button>
+      <button type="button" class="radio-station" data-station="1" role="listitem">
+        <span><b>RP Mellow</b><small>Mellow Mix · 舒缓</small></span><i aria-hidden="true"></i>
+      </button>
+      <button type="button" class="radio-station" data-station="2" role="listitem">
+        <span><b>RP Rock</b><small>Rock Mix · 摇滚</small></span><i aria-hidden="true"></i>
+      </button>
+    </div>
+    <div class="radio-controls">
+      <button type="button" class="radio-play" id="radio-play" aria-label="播放">▶ 播放</button>
+      <label class="radio-vol"><span>音量</span><input type="range" id="radio-volume" min="0" max="1" step="0.05" value="0.7" aria-label="音量"><span>🔊</span></label>
+    </div>
+    <audio id="radio-audio" preload="none"></audio>
+    <div class="music-links">
+      <span>登录 / 打开官方 App</span>
+      <a href="https://open.spotify.com/" target="_blank" rel="noopener noreferrer">Spotify</a>
+      <a href="https://music.apple.com/" target="_blank" rel="noopener noreferrer">Apple Music</a>
+      <a href="https://y.qq.com/" target="_blank" rel="noopener noreferrer">QQ音乐</a>
+      <a href="https://music.163.com/" target="_blank" rel="noopener noreferrer">网易云</a>
+    </div>
+    <p class="music-note">站内登录第三方音乐账号需要平台 OAuth 授权，当前提供公开电台；点服务名可在官方 App 登录。</p>
+  </aside>
   <script defer src="data.js"></script>
   <script defer src="assets/app.js"></script>
 </body>

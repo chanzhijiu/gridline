@@ -13,8 +13,451 @@
 
   const CST = "Asia/Shanghai";
   const VIEWS = ["f1", "fe", "lol", "vct", "kpl", "ivl"];
-  const state = { kpl: "all", ivl: "all" };
+  const state = { kpl: "all", ivl: "all", lang: "zh" };
+  try {
+    const saved = localStorage.getItem("gridline-lang");
+    if (saved === "en" || saved === "zh") state.lang = saved;
+  } catch (_) {}
   const $ = (sel, root = document) => root.querySelector(sel);
+
+  /* ---------------------------------------------------------- i18n */
+  const EN_MAP = new Map([
+    ["赛事切换", "Series"],
+    ["GRIDLINE 首页", "GRIDLINE home"],
+    ["英雄联盟", "League of Legends"],
+    ["车手", "Driver"],
+    ["车队", "Team"],
+    ["胜", "Wins"],
+    ["负", "Losses"],
+    ["2026KPL年度总决赛", "2026 KPL Grand Finals"],
+    ["2026KPL年度总决赛 · 54 场", "2026 KPL Grand Finals · 54 matches"],
+    ["把赛车与电竞放进同一张时间表。", "Motorsport and esports on one timeline."],
+    ["公开电台 · 无需登录", "Public radio · no login"],
+    ["电台", "Radio"],
+    ["所有访客都可以直接收听", "Anyone can listen without signing in"],
+    ["选择电台", "Choose a station"],
+    ["正在播放", "Now playing"],
+    ["无法播放 · 检查网络", "Can't play · check connection"],
+    ["公开电台需要联网", "Public radio needs a network"],
+    ["电台暂时不可用", "Station unavailable"],
+    ["可以换一个电台试试", "Try another station"],
+    ["音量", "Volume"],
+    ["登录 / 打开官方 App", "Sign in / open official app"],
+    ["站内登录第三方音乐账号需要平台 OAuth 授权，当前提供公开电台；点服务名可在官方 App 登录。",
+      "Signing in to third-party music needs each platform's OAuth. This radio is public; open a service to sign in with its official app."],
+    ["Main Mix · 无广告", "Main Mix · ad-free"],
+    ["Mellow Mix · 舒缓", "Mellow Mix · calm"],
+    ["Rock Mix · 摇滚", "Rock Mix · guitars"],
+    ["数据快照", "Data snapshot"],
+    ["时区", "Time zone"],
+    ["北京时间 UTC+8", "Beijing time UTC+8"],
+    ["刷新", "Refresh"],
+    ["非官方粉丝项目。赛程、积分与排名均来自公开数据源，最终以官方公告为准。F1 数据经 Jolpica / Ergast API，FE 来自 Formula E 官方日历，LoL 来自 ScoreGG，Valorant 来自 VLR.GG，KPL 与 IVL 来自官方赛事接口。",
+      "Unofficial fan project. Schedules, standings and rankings come from public sources; official announcements prevail. F1 via Jolpica / Ergast, FE via Formula E, LoL via ScoreGG, Valorant via VLR.GG, KPL and IVL via official event APIs."],
+    ["请开启 JavaScript 以查看 GRIDLINE 看板。", "Please enable JavaScript to view GRIDLINE."],
+    ["缺少 data.js，请先运行 build_data.py。", "Missing data.js. Run build_data.py first."],
+
+    ["车手与车队积分榜", "Drivers & Constructors"],
+    ["车手积分榜", "Drivers' standings"],
+    ["车队积分榜", "Constructors' standings"],
+    ["上一站", "Last race"],
+    ["下一站信息", "Next race"],
+    ["最快圈", "Fastest lap"],
+    ["起步", "grid"],
+    ["赛制", "Format"],
+    ["赛道", "Circuit"],
+    ["地点", "Location"],
+    ["开赛", "Start"],
+    ["含冲刺赛", "Sprint weekend"],
+    ["大奖赛", "Grand Prix"],
+    ["冲刺赛周末", "Sprint weekend"],
+    ["常规大奖赛", "Grand Prix"],
+    ["冲刺赛已结束", "Sprints completed"],
+    ["赛程已完成", "of season complete"],
+    ["赛季赛历", "season calendar"],
+    ["赛季赛历", "season calendar"],
+
+    ["第 13 赛季从吉达启程，历经墨西哥城、迈阿密、柏林、摩纳哥与东京，共 21 站。",
+      "Season 13 starts in Jeddah and travels through Mexico City, Miami, Berlin, Monaco and Tokyo across 21 rounds."],
+    ["第 13 赛季赛历", "Season 13 calendar"],
+    ["第 13 赛季分站", "Season 13 rounds"],
+    ["第 13 赛季", "Season 13"],
+    ["世界排名", "World rankings"],
+    ["赛季收官 · 转会期", "Season complete · Transfer window"],
+    ["中国赛区由 Nova Esports 领跑。", "Nova Esports leads the China region."],
+    ["排名来自 VLR.GG 世界排名；", "Rankings via VLR.GG; "],
+    ["其他赛区", "Other regions"],
+    ["各地区前 5 · 完整前 10 见 VLR.GG", "Top 5 per region · full top 10 on VLR.GG"],
+    ["近期赛程与赛果", "Matches & results"],
+    ["近期赛程", "Upcoming"],
+    ["近期赛果", "Recent results"],
+    ["即将开始", "Upcoming"],
+    ["暂无赛程", "No upcoming matches"],
+    ["暂无赛果", "No recent results"],
+    ["暂无本周赛程", "No matches this week"],
+
+    ["赛区排名", "Regional rankings"],
+    ["第三赛段", "Split 3"],
+    ["登峰组", "Ascent Group"],
+    ["涅槃组", "Nirvana Group"],
+    ["LPL 第三赛段 · 登峰组 / 涅槃组", "LPL Split 3 · Ascent / Nirvana"],
+    ["每组 6 队", "6 teams per group"],
+    ["大师组 / 精英组 · 每组 6 队", "Master / Elite · 6 teams per group"],
+    ["擂台赛已结束 · 突围赛与淘汰赛进行中", "Arena finished · Knockout Qualifier and Playoffs live"],
+    ["成都 · BO7", "Chengdu · BO7"],
+    ["成都，BO7 决出年度总冠军。", "Chengdu · BO7 decides the annual champion."],
+    ["职业俱乐部", "Pro clubs"],
+    ["常规赛 + 季后赛", "Regular season + Playoffs"],
+    ["季后赛", "Playoffs"],
+    ["季后 赛", "Playoffs"],
+    ["常规", "Regular"],
+    ["秋季赛常规赛进行中，比赛日通常在北京时间 14:00 / 16:00 / 18:00 开赛。", "The Autumn Split regular season is underway; matches usually start at 14:00 / 16:00 / 18:00 Beijing time."],
+    ["倒计时按北京时间计算。F1 官方赛程可能调整，出发前请以 Formula 1 官方渠道为准。", "Countdown in Beijing time. F1 schedules may change; check official Formula 1 channels before travelling."],
+    ["瑞士轮 3 胜晋级、3 负淘汰，同战绩配对。", "Swiss: three wins advance, three losses eliminate; teams with the same record are paired."],
+    ["2026 赛季赛历", "2026 Season Calendar"],
+    ["2026 年度总决赛", "2026 Grand Finals"],
+    ["年度总决赛", "Grand Finals"],
+    ["赛段进程", "Road to the title"],
+    ["擂台赛积分榜", "Arena standings"],
+    ["大师组", "Master"],
+    ["精英组", "Elite"],
+    ["擂台赛", "Arena"],
+    ["附加赛", "Play-in"],
+    ["突围赛", "Knockout Qualifier"],
+    ["淘汰赛", "Playoffs"],
+    ["总决赛", "Grand Final"],
+    ["常规赛", "Regular Season"],
+    ["秋季赛", "Autumn Split"],
+    ["第五人格职业联赛", "Identity V League"],
+    ["赛程与赛果", "Schedule & results"],
+    ["全部 54 场", "All 54 matches"],
+    ["全部比赛", "All matches"],
+    ["赛程赛果", "Schedule"],
+    ["完整赛程", "Full schedule"],
+    ["完整赛历", "Full calendar"],
+    ["21 站赛历", "21-round calendar"],
+    ["瑞士轮积分", "Swiss standings"],
+    ["瑞士轮积分榜", "Swiss standings"],
+    ["瑞士轮", "Swiss Stage"],
+    ["16 队瑞士轮", "16 teams Swiss Stage"],
+    ["前 8 晋级淘汰赛", "Top 8 advance to the knockout stage"],
+    ["前 8 晋级", "Top 8 advance"],
+    ["前 8 名晋级淘汰赛", "Top 8 advance to the knockout stage"],
+    ["本周赛程", "This week"],
+    ["本周", "This week"],
+    ["战队", "Team"],
+    ["队伍", "Team"],
+    ["大场", "Series"],
+    ["小局", "Games"],
+    ["净胜", "Diff"],
+    ["胜-负", "W–L"],
+    ["积分", "Pts"],
+    ["胜率", "win rate"],
+    ["大场胜率", "series win rate"],
+    ["状态", "Status"],
+    ["晋级", "Qualified"],
+    ["淘汰", "Eliminated"],
+    ["争夺中", "In contention"],
+    ["已结束", "Finished"],
+    ["未开始", "Upcoming"],
+    ["进行中", "Live"],
+
+    ["全部", "All"],
+    ["未结束", "Open"],
+    ["已结束", "Finished"],
+
+    ["领跑者", "Leader"],
+    ["下一站", "Next"],
+    ["北京时间", "CST"],
+    ["比赛日", "Race day"],
+    ["双赛", "Double-header"],
+    ["支车队", "teams"],
+    ["位车手", "drivers"],
+    ["支战队", "teams"],
+    ["个比赛周末", "race weekends"],
+    ["个双赛周末", "double-header weekends"],
+    ["横跨四大洲", "across four continents"],
+    ["来自全球各大赛区", "from major regions worldwide"],
+    ["全部 54 场 · 北京时间", "All 54 matches · Beijing time"],
+    ["全部比赛 · 北京时间", "All matches · Beijing time"],
+    ["各赛区前 5", "Top 5 per region"],
+    ["完整前 10", "Full top 10"],
+    ["世界排名覆盖赛区", "Regions covered"],
+    ["各地区前 10", "Top 10 per region"],
+    ["中国赛区", "China"],
+    ["赛季收官", "Season complete"],
+    ["转会期", "Transfer window"],
+    ["休赛期", "Off-season"],
+    ["大场胜率", "series win rate"],
+    ["小局", "games"],
+    ["净胜", "diff"],
+    ["总冠军", "champion"],
+    ["冠军", "Champion"],
+    ["揭幕战", "Season opener"],
+    ["比赛周末", "Race weekend"],
+    ["分站", "rounds"],
+    [" 天后", " days"],
+    ["天后", " days"],
+    [" 天", " days"],
+    [" 场", " matches"],
+    [" 站", " rounds"],
+    [" 位车手", " drivers"],
+    [" 支车队", " teams"],
+    [" 支战队", " teams"]
+  ]);
+  const EN_KEYS = [...EN_MAP.keys()].sort((a, b) => b.length - a.length);
+
+  function toEN(value) {
+    if (state.lang !== "en") return value;
+    let out = String(value);
+    for (const zh of EN_KEYS) if (out.includes(zh)) out = out.split(zh).join(EN_MAP.get(zh));
+    out = out
+      .replace(/(\d+)\s*胜\s*(\d+)\s*负/g, "$1W $2L")
+      .replace(/(\d+)\s*胜/g, "$1 wins")
+      .replace(/(\d+)\s*负/g, "$1 losses")
+      .replace(/(\d+)\s*天后/g, "$1 days")
+      .replace(/(\d+)\s*天/g, "$1 days")
+      .replace(/(\d+)\s*场/g, "$1 matches")
+      .replace(/(\d+)\s*站/g, "$1 rounds")
+      .replace(/(\d+)\s*位车手/g, "$1 drivers")
+      .replace(/(\d+)\s*支车队/g, "$1 teams")
+      .replace(/(\d+)\s*支战队/g, "$1 teams")
+      .replace(/(\d+)\s*支车队/g, "$1 teams")
+      .replace(/(\d+)\s*队/g, "$1 teams")
+      .replace(/(\d+)\s*个/g, "$1 ")
+      .replace(/(\d+)\s*积分/g, "$1 pts")
+      .replace(/(\d+)%/g, "$1%")
+      .replace(/(\d+)月(\d+)日/g, "$2/$1")
+      .replace(/。/g, ". ")
+      .replace(/，/g, ", ")
+      .replace(/、/g, ", ");
+    return out;
+  }
+
+  function localize(root = document) {
+    if (state.lang !== "en") return;
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    const nodes = [];
+    while (walker.nextNode()) {
+      const n = walker.currentNode;
+      if (n.nodeValue && n.nodeValue.trim()) nodes.push(n);
+    }
+    nodes.forEach((n) => { n.nodeValue = toEN(n.nodeValue); });
+  }
+
+  function captureStatic() {
+    document.querySelectorAll("header, footer, noscript, #music-panel, #music-toggle").forEach((root) => {
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+      while (walker.nextNode()) {
+        const n = walker.currentNode;
+        if (n.__zh === undefined) n.__zh = n.nodeValue;
+      }
+    });
+  }
+
+  function applyStatic() {
+    document.querySelectorAll("header, footer, noscript, #music-panel, #music-toggle").forEach((root) => {
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+      while (walker.nextNode()) {
+        const n = walker.currentNode;
+        if (n.__zh === undefined) continue;
+        n.nodeValue = state.lang === "en" ? toEN(n.__zh) : n.__zh;
+      }
+    });
+  }
+
+  function renderTicker() {
+    const el = $("#ticker");
+    if (el) el.innerHTML = tickerItems() + tickerItems();
+  }
+
+  function reapplyFilters() {
+    ["kpl", "ivl"].forEach((group) => {
+      const list = document.getElementById(`${group}-match-list`);
+      if (!list) return;
+      list.querySelectorAll(".match-item").forEach((item) => {
+        const s = item.dataset.status;
+        const show = state[group] === "all" || (state[group] === "upcoming" ? s !== "已结束" : s === "已结束");
+        item.style.display = show ? "" : "none";
+      });
+      document.querySelectorAll(`[data-filter-group="${group}"] .filter-btn`).forEach((btn) => {
+        btn.classList.toggle("is-active", btn.dataset.filter === state[group]);
+      });
+    });
+  }
+
+  function applyLang(lang, keepScroll = true) {
+    const next = lang === "en" ? "en" : "zh";
+    state.lang = next;
+    try { localStorage.setItem("gridline-lang", next); } catch (_) {}
+    document.documentElement.lang = next === "en" ? "en" : "zh-CN";
+    const y = window.scrollY;
+    renderAll();
+    renderTicker();
+    applyStatic();
+    if (next === "en") {
+      document.querySelectorAll(".view, #ticker, header, footer, noscript, #music-panel, #music-toggle").forEach((root) => localize(root));
+    }
+    tickCountdowns();
+    reapplyFilters();
+    if (typeof musicUpdate === "function") musicUpdate();
+    document.querySelectorAll("[data-lang]").forEach((b) => {
+      const on = b.dataset.lang === next;
+      b.classList.toggle("is-active", on);
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+    if (keepScroll) window.scrollTo(0, y);
+  }
+
+  function setupLang() {
+    captureStatic();
+    document.querySelectorAll("[data-lang]").forEach((b) => {
+      b.addEventListener("click", () => applyLang(b.dataset.lang));
+    });
+    if (state.lang === "en") applyLang("en");
+  }
+
+  function renderAll() {
+    renderF1();
+    renderFE();
+    renderLoL();
+    renderVCT();
+    renderKPL();
+    renderIVL();
+  }
+
+  let musicUpdate = null;
+
+  function initMusic() {
+    const toggle = $("#music-toggle");
+    const panel = $("#music-panel");
+    const audio = $("#radio-audio");
+    if (!toggle || !panel || !audio) return;
+    const stations = [
+      { name: "Radio Paradise", sub: "Main Mix · 无广告", url: "https://stream.radioparadise.com/aac-128" },
+      { name: "RP Mellow", sub: "Mellow Mix · 舒缓", url: "https://stream.radioparadise.com/mellow-128" },
+      { name: "RP Rock", sub: "Rock Mix · 摇滚", url: "https://stream.radioparadise.com/rock-128" }
+    ];
+    let index = 0;
+    let playing = false;
+    let lastError = "";
+    const playBtn = $("#radio-play");
+    const status = $("#radio-status");
+    const sub = $("#radio-sub");
+    const volume = $("#radio-volume");
+    const tr = (zh, en) => (state.lang === "en" ? en : zh);
+    const stationButtons = [...panel.querySelectorAll("[data-station]")];
+
+    const setStatus = (text, detail) => {
+      if (status) status.textContent = text;
+      if (sub && detail) sub.textContent = detail;
+    };
+
+    function update() {
+      const st = stations[index];
+      stationButtons.forEach((b) => b.classList.toggle("is-active", Number(b.dataset.station) === index));
+      if (playBtn) {
+        playBtn.textContent = playing ? tr("⏸ 暂停", "⏸ Pause") : tr("▶ 播放", "▶ Play");
+        playBtn.setAttribute("aria-label", playing ? tr("暂停", "Pause") : tr("播放", "Play"));
+      }
+      toggle.classList.toggle("is-playing", playing);
+      document.querySelector(".radio-mark")?.classList.toggle("is-live", playing);
+      if (playing) setStatus(tr(`正在播放 · ${st.name}`, `Now playing · ${st.name}`), tr(st.sub, st.sub));
+      else if (lastError) setStatus(lastError, tr("公开电台需要联网", "Public radio needs a network"));
+      else setStatus(tr("选择电台", "Choose a station"), tr("所有访客都可以直接收听", "Anyone can listen without signing in"));
+    }
+    musicUpdate = update;
+
+    function select(i) {
+      index = i;
+      lastError = "";
+      audio.src = stations[index].url;
+      update();
+    }
+
+    async function play() {
+      if (!audio.src) audio.src = stations[index].url;
+      lastError = "";
+      playing = true;
+      update();
+      try {
+        await audio.play();
+      } catch (_) {
+        playing = false;
+        lastError = tr("无法播放 · 检查网络", "Can't play · check connection");
+        update();
+      }
+    }
+
+    stationButtons.forEach((b) => b.addEventListener("click", () => {
+      select(Number(b.dataset.station));
+      if (playing) play();
+    }));
+    playBtn?.addEventListener("click", () => {
+      if (playing) { audio.pause(); return; }
+      play();
+    });
+    audio.addEventListener("playing", () => { playing = true; lastError = ""; update(); });
+    audio.addEventListener("pause", () => { playing = false; update(); });
+    audio.addEventListener("error", () => { playing = false; lastError = tr("电台暂时不可用", "Station unavailable"); update(); });
+    if (volume) {
+      audio.volume = Number(volume.value);
+      volume.addEventListener("input", () => { audio.volume = Number(volume.value); });
+    }
+    toggle.addEventListener("click", () => {
+      const open = panel.hidden;
+      panel.hidden = !open;
+      toggle.setAttribute("aria-expanded", String(open));
+      if (open) { panel.querySelector(".music-close")?.focus(); }
+    });
+    $("#music-close")?.addEventListener("click", () => {
+      panel.hidden = true;
+      toggle.setAttribute("aria-expanded", "false");
+      toggle.focus();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !panel.hidden) {
+        panel.hidden = true;
+        toggle.setAttribute("aria-expanded", "false");
+        toggle.focus();
+      }
+    });
+    select(0);
+  }
+
+  function initMotion() {
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    let lastHero = null;
+    if (matchMedia("(hover: hover)").matches) {
+      document.addEventListener("pointermove", (e) => {
+        const hero = e.target.closest && e.target.closest(".hero");
+        if (hero !== lastHero) {
+          if (lastHero) {
+            lastHero.style.removeProperty("--mx");
+            lastHero.style.removeProperty("--my");
+            lastHero.style.removeProperty("--artX");
+            lastHero.style.removeProperty("--artY");
+          }
+          lastHero = hero;
+        }
+        if (!hero) return;
+        const r = hero.getBoundingClientRect();
+        const x = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+        const y = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height));
+        hero.style.setProperty("--mx", `${(x * 100).toFixed(1)}%`);
+        hero.style.setProperty("--my", `${(y * 100).toFixed(1)}%`);
+        hero.style.setProperty("--artX", `${((x - .5) * -14).toFixed(1)}px`);
+        hero.style.setProperty("--artY", `${((y - .5) * -10).toFixed(1)}px`);
+      }, { passive: true });
+    }
+    const progress = () => {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      const p = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
+      document.body.style.setProperty("--scroll", p.toFixed(4));
+    };
+    window.addEventListener("scroll", progress, { passive: true });
+    progress();
+  }
 
   /* ---------------------------------------------------------- utils */
   const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -31,9 +474,19 @@
   }
   function md(iso) { const p = cstParts(iso); return p ? `${p.m}.${p.d}` : "—"; }
   function hm(iso) { const p = cstParts(iso); return p ? `${p.h}:${p.mi}` : ""; }
-  function fullCN(iso) { const p = cstParts(iso); return p ? `${p.m}月${p.d}日 ${p.h}:${p.mi}` : "时间待定"; }
-  function dayCN(iso) { const p = cstParts(iso); return p ? `${p.m}月${p.d}日` : "待定"; }
-  function weekday(iso) { const p = cstParts(iso); return p ? new Intl.DateTimeFormat("zh-CN", { timeZone: CST, weekday: "short" }).format(p.date) : ""; }
+  function fullCN(iso) {
+    const p = cstParts(iso);
+    if (!p) return state.lang === "en" ? "Time TBD" : "时间待定";
+    if (state.lang === "en") return new Intl.DateTimeFormat("en-US", { timeZone: CST, month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(p.date);
+    return `${p.m}月${p.d}日 ${p.h}:${p.mi}`;
+  }
+  function dayCN(iso) {
+    const p = cstParts(iso);
+    if (!p) return state.lang === "en" ? "TBD" : "待定";
+    if (state.lang === "en") return new Intl.DateTimeFormat("en-US", { timeZone: CST, month: "short", day: "numeric" }).format(p.date);
+    return `${p.m}月${p.d}日`;
+  }
+  function weekday(iso) { const p = cstParts(iso); return p ? new Intl.DateTimeFormat(state.lang === "en" ? "en-US" : "zh-CN", { timeZone: CST, weekday: "short" }).format(p.date) : ""; }
   function daysUntil(iso) {
     const p = cstParts(iso); if (!p) return null;
     const diff = p.date.getTime() - Date.now();
@@ -56,7 +509,8 @@
     const h = Math.floor((diff % 86400000) / 3600000);
     const m = Math.floor((diff % 3600000) / 60000);
     const s = Math.floor((diff % 60000) / 1000);
-    return [[d, "天"], [h, "时"], [m, "分"], [s, "秒"]].map(([v, l], i) =>
+    const labels = state.lang === "en" ? ["D", "H", "M", "S"] : ["天", "时", "分", "秒"];
+    return [[d, labels[0]], [h, labels[1]], [m, labels[2]], [s, labels[3]]].map(([v, l], i) =>
       `${i ? '<span class="cd-sep">:</span>' : ""}<span class="cd-cell"><span class="cd-num">${String(v).padStart(2, "0")}</span><span class="cd-lbl">${l}</span></span>`
     ).join("");
   }
@@ -89,11 +543,15 @@
     return `<div class="section-head"><div class="left"><span class="section-kicker">${esc(kicker)}</span><h2 class="section-title">${title}</h2></div><div class="section-actions">${meta ? `<span class="section-meta">${meta}</span>` : ""}${actions}</div></div>`;
   }
 
+  function statusLabel(s) {
+    const en = { "晋级": "Qualified", "淘汰": "Eliminated", "争夺中": "In contention", "已结束": "Finished", "未开始": "Upcoming", "进行中": "Live" };
+    return state.lang === "en" ? (en[s] || s) : s;
+  }
   function statusChip(s) {
-    if (s === "晋级") return '<span class="chip chip-green">晋级</span>';
-    if (s === "淘汰") return '<span class="chip chip-red">淘汰</span>';
-    if (s === "争夺中") return '<span class="chip chip-gold">争夺中</span>';
-    return `<span class="chip chip-muted">${esc(s)}</span>`;
+    if (s === "晋级") return `<span class="chip chip-green">${statusLabel(s)}</span>`;
+    if (s === "淘汰") return `<span class="chip chip-red">${statusLabel(s)}</span>`;
+    if (s === "争夺中") return `<span class="chip chip-gold">${statusLabel(s)}</span>`;
+    return `<span class="chip chip-muted">${esc(statusLabel(s))}</span>`;
   }
 
   /* ---------------------------------------------------------- ticker */
@@ -650,7 +1108,7 @@
   }
 
   function initShell() {
-    $("#ticker").innerHTML = tickerItems() + tickerItems();
+    renderTicker();
     const genEl = $("#generated");
     genEl.textContent = (() => { const p = cstParts(D.generatedAt); return p ? `${p.y}.${p.m}.${p.d} ${p.h}:${p.mi}` : "—"; })();
     const ageHours = (Date.now() - new Date(D.generatedAt).getTime()) / 3600000;
@@ -700,12 +1158,10 @@
     });
   }
 
-  renderF1();
-  renderFE();
-  renderLoL();
-  renderVCT();
-  renderKPL();
-  renderIVL();
+  renderAll();
   initShell();
+  setupLang();
+  initMusic();
+  initMotion();
   tickCountdowns();
 })();
